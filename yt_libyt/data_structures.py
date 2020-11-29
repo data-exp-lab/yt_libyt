@@ -22,7 +22,7 @@ import weakref
 from yt.funcs import \
     mylog, \
     setdefaultattr
-from yt.data_objects.grid_patch import \
+from yt.data_objects.index_subobjects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
     GridIndex
