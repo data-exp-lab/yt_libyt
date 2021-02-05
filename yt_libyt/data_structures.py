@@ -157,6 +157,7 @@ class libytHierarchy(GridIndex):
 
     #   # for _debug mode only (not implemented yet)
     def _validate_parent_children_relasionship(self):
+        # Do this inside libyt
         pass
 
 
@@ -189,6 +190,7 @@ class libytHierarchy(GridIndex):
             gfiles[g.filename].append(g)
 
         mylog.debug("gfiles = %s", gfiles)
+        mylog.debug("local_only = %s", local_only)
 
         for fn in sorted(gfiles):
             # TODO: Check the "local_only"
