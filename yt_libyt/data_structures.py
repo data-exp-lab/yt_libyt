@@ -14,30 +14,21 @@ libyt-specific data structures
 # -----------------------------------------------------------------------------
 
 import os
-import stat
+import weakref
 import time
 import numpy as np
-import weakref
+
 from collections import defaultdict
-
-from yt.funcs import \
-    mylog, \
-    setdefaultattr
-from yt.data_objects.index_subobjects.grid_patch import \
-    AMRGridPatch
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.data_objects.static_output import \
-    Dataset
-from yt.utilities.file_handler import \
-    HDF5FileHandler
-from yt.utilities.parameter_file_storage import \
-    output_type_registry
-from .fields import libytFieldInfo
-from yt.geometry.geometry_handler import YTDataChunk
-
 import inspect
 
+from yt.funcs import mylog, setdefaultattr
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.data_objects.static_output import Dataset
+from .fields import libytFieldInfo
+
+from yt.utilities.parameter_file_storage import output_type_registry
+from yt.geometry.geometry_handler import YTDataChunk
 
 class libytGrid(AMRGridPatch):
     _id_offset = 0
@@ -62,7 +53,7 @@ class libytGrid(AMRGridPatch):
 
 class libytHierarchy(GridIndex):
     grid = libytGrid
-    libyt = None    # What for?
+    libyt = None
 
     ### NOT SURE ABOUT THIS OPTION
     #   _preload_implemented = True
@@ -140,7 +131,7 @@ class libytHierarchy(GridIndex):
             grid = self.grids[gid]
             parent_id = parent_list[gid]
 
-            # TODO: Some codes might not start root rank as 0
+            # TODO: Some codes might not start root rank as 0, not sure if no parent is definitely < 0
             # set up the parent-children relationship
             if parent_id >= 0:
                 parent_grid = self.grids[parent_id]
@@ -203,7 +194,7 @@ class libytDataset(Dataset):
     _index_class = libytHierarchy
     _field_info_class = libytFieldInfo
     _dataset_type = 'libyt'  # must set here since __init__() does not know dataset_type when calling it
-    _debug = False  # debug mode for libyt (not supported yet), some checks are in libyt C-library
+    _debug = False  #TODO: debug mode for libyt (not supported yet), some checks are in libyt C-library
     libyt = None
 
     def __init__(self,
@@ -241,7 +232,7 @@ class libytDataset(Dataset):
             self._field_info_class = libytFieldInfo
             self.fluid_types += ('libyt',)
 
-        mylog.info('libyt: code dataset       = %s' % self._code_dataset) # What for?
+        mylog.info('libyt: code dataset       = %s' % self._code_dataset)
         mylog.info('libyt: FieldInfo subclass = %s' % self._field_info_class)
         mylog.info('libyt: fluid type         = %s' % self._code_frontend)
 
@@ -255,13 +246,14 @@ class libytDataset(Dataset):
         setdefaultattr(self, 'mass_unit', self.quan(self.libyt.param_yt['mass_unit'], 'g'))
         setdefaultattr(self, 'time_unit', self.quan(self.libyt.param_yt['time_unit'], 's'))
 
-        # TODO: How to set code specific unit, like MHD
+        # TODO: How to set code specific unit, like MHD, see line 279
 
     def _parse_parameter_file(self):
         # dataset identifier
         self.unique_identifier = time.time()
 
         # user-specific parameters
+        # TODO: libyt yt_add_user_parameter
         self.parameters.update(self.libyt.param_user)
 
         # yt-specific parameters
@@ -284,7 +276,7 @@ class libytDataset(Dataset):
 
         # Just to make example/example run
         # TODO: Make it more universal
-        #       [Option 1]: make user input other parameter in yt_set_parameter()
+        #       [Option 1]: yt_add_user_parameter
         if (self._code_frontend == "gamer"):
             self.mhd = 0
 
