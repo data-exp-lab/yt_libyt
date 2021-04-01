@@ -43,16 +43,14 @@ class libytGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level):
-        AMRGridPatch.__init__(self, id,
-                              filename=None,
-                              index=index)
+        AMRGridPatch.__init__(self, id, filename=None, index=index)
 
         # TODO:
         # Might be redundant by setting these two, 
         # should revisit when we consider load balance.
         # 
         # MPI_rank : Refers to grid is currently belongs to such MPI rank.
-        # filename : Refers to grid originally belongs to which MPI rank.
+        # filename : Refers to grid originally belongs to which MPI rank, see line 125.
         self.MPI_rank = None
         self.Parent = None
         self.Children = []
@@ -64,7 +62,7 @@ class libytGrid(AMRGridPatch):
 
 class libytHierarchy(GridIndex):
     grid = libytGrid
-    libyt = None
+    libyt = None    # What for?
 
     ### NOT SURE ABOUT THIS OPTION
     #   _preload_implemented = True
@@ -81,9 +79,9 @@ class libytHierarchy(GridIndex):
     def _detect_output_fields(self):
         # assuming all grids have the same fields
         gid = 0
-        self.field_list = [(self.dataset._fluid_type, v)
-                           for v in self.libyt.grid_data[gid].keys()]
+        self.field_list = [(self.dataset._code_frontend, v) for v in self.libyt.grid_data[gid].keys()]
 
+        # TODO: particle fields
         # assuming all particles have the same fields
 
     #       if self._group_particle is not None:
@@ -125,6 +123,7 @@ class libytHierarchy(GridIndex):
             self.grids[i].MPI_rank = self.proc_num[i,0]
             self.grids[i].filename = "MPI_Rank_%07i" % (self.proc_num[i,0])
 
+        # TODO: particles
         # calculate the starting particle indices for each grid (starting from 0)
         # --> note that the last element must store the total number of particles
         #    (see _read_particle_coords and _read_particle_fields in io.py)
@@ -141,6 +140,7 @@ class libytHierarchy(GridIndex):
             grid = self.grids[gid]
             parent_id = parent_list[gid]
 
+            # TODO: Some codes might not start root rank as 0
             # set up the parent-children relationship
             if parent_id >= 0:
                 parent_grid = self.grids[parent_id]
@@ -150,19 +150,6 @@ class libytHierarchy(GridIndex):
             # set up other grid attributes
             grid._prepare_grid()
             grid._setup_dx()
-
-        # validate the parent-children relationship in the debug mode
-        if self.dataset._debug:
-            self._validate_parent_children_relasionship()
-
-    #   # for _debug mode only (not implemented yet)
-    def _validate_parent_children_relasionship(self):
-        # Do this inside libyt
-        pass
-
-
-#       mylog.info('Validating the parent-children relationship ...')
-#       mylog.info('Check passed')
 
     def _chunk_io(self, dobj, cache = True, local_only = False):
 
@@ -193,7 +180,7 @@ class libytHierarchy(GridIndex):
         mylog.debug("local_only = %s", local_only)
 
         for fn in sorted(gfiles):
-            # TODO: Check the "local_only"
+            # TODO: Check the "local_only", need to know the precedure.
             if local_only:
 
                 for g in gfiles[fn] :
@@ -216,7 +203,7 @@ class libytDataset(Dataset):
     _index_class = libytHierarchy
     _field_info_class = libytFieldInfo
     _dataset_type = 'libyt'  # must set here since __init__() does not know dataset_type when calling it
-    _debug = False  # debug mode for libyt (not supported yet)
+    _debug = False  # debug mode for libyt (not supported yet), some checks are in libyt C-library
     libyt = None
 
     def __init__(self,
@@ -244,13 +231,7 @@ class libytDataset(Dataset):
 
                 self._code_dataset = name
                 self._field_info_class = cls._field_info_class
-
-                # No _fluid_type in yt-3.6.0 at all
-                # self._fluid_type       = cls._fluid_type
-                # self.fluid_types      += ( self._fluid_type, )
-
-                self._fluid_type = self._code_frontend
-                self.fluid_types += (self._fluid_type,)
+                self.fluid_types += (self._code_frontend,)
 
                 break
         else:
@@ -258,12 +239,11 @@ class libytDataset(Dataset):
             # set various attributes to libyt itself
             self._code_dataset = self.__class__.__name__
             self._field_info_class = libytFieldInfo
-            self._fluid_type = 'libyt'
-            self.fluid_types += (self._fluid_type,)
+            self.fluid_types += ('libyt',)
 
-        mylog.info('libyt: code dataset       = %s' % self._code_dataset)
+        mylog.info('libyt: code dataset       = %s' % self._code_dataset) # What for?
         mylog.info('libyt: FieldInfo subclass = %s' % self._field_info_class)
-        mylog.info('libyt: fluid type         = %s' % self._fluid_type)
+        mylog.info('libyt: fluid type         = %s' % self._code_frontend)
 
         Dataset.__init__(self, "libytHasNoParameterFile", self._dataset_type,
                          units_override=units_override,
@@ -274,6 +254,8 @@ class libytDataset(Dataset):
         setdefaultattr(self, 'length_unit', self.quan(self.libyt.param_yt['length_unit'], 'cm'))
         setdefaultattr(self, 'mass_unit', self.quan(self.libyt.param_yt['mass_unit'], 'g'))
         setdefaultattr(self, 'time_unit', self.quan(self.libyt.param_yt['time_unit'], 's'))
+
+        # TODO: How to set code specific unit, like MHD
 
     def _parse_parameter_file(self):
         # dataset identifier
@@ -301,8 +283,11 @@ class libytDataset(Dataset):
         self.periodicity = np.asarray(param_yt['periodicity'])
 
         # Just to make example/example run
+        # TODO: Make it more universal
+        #       [Option 1]: make user input other parameter in yt_set_parameter()
         if (self._code_frontend == "gamer"):
             self.mhd = 0
+
 
     def _obtain_libyt(self):
         import libyt
