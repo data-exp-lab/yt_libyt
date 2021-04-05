@@ -131,7 +131,6 @@ class libytHierarchy(GridIndex):
             grid = self.grids[gid]
             parent_id = parent_list[gid]
 
-            # TODO: Some codes might not start root rank as 0, not sure if no parent is definitely < 0
             # set up the parent-children relationship
             if parent_id >= 0:
                 parent_grid = self.grids[parent_id]
@@ -194,7 +193,7 @@ class libytDataset(Dataset):
     _index_class = libytHierarchy
     _field_info_class = libytFieldInfo
     _dataset_type = 'libyt'  # must set here since __init__() does not know dataset_type when calling it
-    _debug = False  #TODO: debug mode for libyt (not supported yet), some checks are in libyt C-library
+    _debug = False  #TODO: debug mode for libyt (not supported yet), some checks are in libyt C-library. Cannot open yet. Future use.
     libyt = None
 
     def __init__(self,
@@ -226,6 +225,7 @@ class libytDataset(Dataset):
 
                 break
         else:
+            # TODO: Code failed if enter this else block, terminate here.
             mylog.warning('Cannot find the code frontend [%s]' % self.libyt.param_yt['frontend'])
             # set various attributes to libyt itself
             self._code_dataset = self.__class__.__name__
@@ -245,8 +245,7 @@ class libytDataset(Dataset):
         setdefaultattr(self, 'length_unit', self.quan(self.libyt.param_yt['length_unit'], 'cm'))
         setdefaultattr(self, 'mass_unit', self.quan(self.libyt.param_yt['mass_unit'], 'g'))
         setdefaultattr(self, 'time_unit', self.quan(self.libyt.param_yt['time_unit'], 's'))
-
-        # TODO: How to set code specific unit, like MHD, see line 279
+        setdefaultattr(self, 'magnetic_unit', self.quan(self.libyt.param_yt['magnetic_unit'], 'gauss'))
 
     def _parse_parameter_file(self):
         # dataset identifier
