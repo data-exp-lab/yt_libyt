@@ -45,6 +45,7 @@ class IOHandlerlibyt(BaseIOHandler):
         self.libyt        = libyt
         self.ds           = ds
         self.grid_data    = libyt.grid_data
+        self.param_yt     = libyt.param_yt
         self._field_dtype = "float64"
 
 ###     ghost_zones != 0 is not supported yet
@@ -145,6 +146,14 @@ class IOHandlerlibyt(BaseIOHandler):
 
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
+
+        mylog.debug("#FLAG#")
+        mylog.debug("yt/frontends/libyt/io.py (class IOHandlerlibyt, def _read_fluid_selection)")
+        mylog.debug("fields = %s", fields)
+
+        # TODO: Make this function return data-type that yt needs, modified if needed.
+        mylog.debug("self.param_yt['field_list'] = %s", self.param_yt["field_list"])
+
         rv     = {}
         chunks = list(chunks)
 
@@ -154,6 +163,9 @@ class IOHandlerlibyt(BaseIOHandler):
             g = chunks[0].objs[0]
             for ftype, fname in fields:
                 rv[(ftype, fname)] = self.grid_data[g.id][fname].swapaxes(0, 2)
+
+            mylog.debug("###### (class IOHandlerlibyt, def _read_fluid_selection)")
+
             return rv
 
         if size is None:
@@ -178,5 +190,8 @@ class IOHandlerlibyt(BaseIOHandler):
                     data_view = self.grid_data[g.id][fname][:,:,:].swapaxes(0,2)
                     offset   += g.select(selector, data_view, rv[field], offset)
         assert(offset == fsize)
+
+        mylog.debug("###### (class IOHandlerlibyt, def _read_fluid_selection)")
+
         return rv
 
