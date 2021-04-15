@@ -277,7 +277,11 @@ class libytDataset(Dataset):
         # TODO: Make it more universal
         #       [Option 1]: yt_add_user_parameter
         if (self._code_frontend == "gamer"):
-            self.mhd = 0
+            try:
+                self.mhd = self.libyt.param_user["mhd"]
+            except KeyError:
+                mylog.debug("libyt.param_user[\"mhd\"] not set!")
+                self.mhd = 0
 
 
     def _obtain_libyt(self):

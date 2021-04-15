@@ -185,6 +185,7 @@ class IOHandlerlibyt(BaseIOHandler):
             for g in chunk.objs:
                 for field in fields:
                     ftype, fname = field
+                    mylog.debug("ftype, fname = %s", field)
 ### for ghost_zones != 0
 #                   data_view = self.grid_data[g.id][fname][self.my_slice].swapaxes(0,2)
                     data_view = self.grid_data[g.id][fname][:,:,:].swapaxes(0,2)
