@@ -191,7 +191,7 @@ class IOHandlerlibyt(BaseIOHandler):
                     if field_list[fname] == "face-centered":
                         # convert to cell-centered
                         data_temp = self.grid_data[g.id][fname]
-                        axis = np.argmax(data_temp.shape())
+                        axis = np.argmax(data_temp.shape)
                         if axis == 0:
                             data_convert = 0.5 * (data_temp[:-1,:,:] + data_temp[1:,:,:])
                         if axis == 1:
@@ -200,7 +200,9 @@ class IOHandlerlibyt(BaseIOHandler):
                             data_convert = 0.5 * (data_temp[:,:,:-1] + data_temp[:,:,1:])
                         data_view = data_convert.swapaxes(0,2)
                     else:
+                        mylog.debug("self.grid_data[g.id][fname].shape = %s", self.grid_data[g.id][fname].shape)
                         data_view = self.grid_data[g.id][fname][:, :, :].swapaxes(0, 2)
+
                     offset   += g.select(selector, data_view, rv[field], offset)
         assert(offset == fsize)
 
