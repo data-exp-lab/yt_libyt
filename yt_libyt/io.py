@@ -151,9 +151,8 @@ class IOHandlerlibyt(BaseIOHandler):
         mylog.debug("yt/frontends/libyt/io.py (class IOHandlerlibyt, def _read_fluid_selection)")
         mylog.debug("fields = %s", fields)
 
-        # TODO: Make this function return data-type that yt needs, modified if needed.
         mylog.debug("self.param_yt['field_list'] = %s", self.param_yt["field_list"])
-
+        field_list = self.param_yt["field_list"]
         rv     = {}
         chunks = list(chunks)
 
@@ -188,7 +187,20 @@ class IOHandlerlibyt(BaseIOHandler):
                     mylog.debug("ftype, fname = %s", field)
 ### for ghost_zones != 0
 #                   data_view = self.grid_data[g.id][fname][self.my_slice].swapaxes(0,2)
-                    data_view = self.grid_data[g.id][fname][:,:,:].swapaxes(0,2)
+                    # TODO: Make this function return data-type that yt needs, modified if needed.
+                    if field_list[fname] == "face-centered":
+                        # convert to cell-centered
+                        data_temp = self.grid_data[g.id][fname]
+                        axis = np.argmax(data_temp.shape())
+                        if axis == 0:
+                            data_convert = 0.5 * (data_temp[:-1,:,:] + data_temp[1:,:,:])
+                        if axis == 1:
+                            data_convert = 0.5 * (data_temp[:,:-1,:] + data_temp[:,1:,:])
+                        if axis == 2:
+                            data_convert = 0.5 * (data_temp[:,:,:-1] + data_temp[:,:,1:])
+                        data_view = data_convert.swapaxes(0,2)
+                    else:
+                        data_view = self.grid_data[g.id][fname][:, :, :].swapaxes(0, 2)
                     offset   += g.select(selector, data_view, rv[field], offset)
         assert(offset == fsize)
 

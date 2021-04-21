@@ -252,7 +252,7 @@ class libytDataset(Dataset):
         self.unique_identifier = time.time()
 
         # user-specific parameters
-        # TODO: libyt yt_add_user_parameter
+        # TODO: libyt yt_add_user_parameter, haven't used this function
         self.parameters.update(self.libyt.param_user)
 
         # yt-specific parameters
