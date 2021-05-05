@@ -220,17 +220,15 @@ class libytDataset(Dataset):
                 mylog.debug("self.fluid_types = %s", self.fluid_types)
 
                 self._code_dataset = name
+                # Take this step to libyt/fields.py (class libytFieldInfo)
                 self._field_info_class = cls._field_info_class
                 self.fluid_types += (self._code_frontend,)
 
                 break
         else:
-            # TODO: Code failed if enter this else block, terminate here.
-            mylog.warning('Cannot find the code frontend [%s]' % self.libyt.param_yt['frontend'])
-            # set various attributes to libyt itself
-            self._code_dataset = self.__class__.__name__
-            self._field_info_class = libytFieldInfo
-            self.fluid_types += ('libyt',)
+            # We assume that user's code has corresponding yt frontend, if not, terminate yt.
+            raise NotImplementedError("libyt set frontend = %s, cannot find the code frontend [%sDataset] in yt." %
+                                      (self.libyt.param_yt['frontend'], self.libyt.param_yt['frontend'].upper()))
 
         mylog.info('libyt: code dataset       = %s' % self._code_dataset)
         mylog.info('libyt: FieldInfo subclass = %s' % self._field_info_class)
