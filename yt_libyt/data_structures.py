@@ -192,7 +192,7 @@ class libytHierarchy(GridIndex):
 class libytDataset(Dataset):
     _index_class = libytHierarchy
     _field_info_class = libytFieldInfo
-    _field_info_base_class = object
+    # _field_info_base_class = object
     _dataset_type = 'libyt'  # must set here since __init__() does not know dataset_type when calling it
     _debug = False  #TODO: debug mode for libyt (not supported yet), some checks are in libyt C-library. Cannot open yet. Future use.
     libyt = None
@@ -220,10 +220,9 @@ class libytDataset(Dataset):
             if self._code_frontend == name[0:-len('Dataset')].lower():
 
                 self._code_dataset = name
-                # Take this step to libyt/fields.py (class libytFieldInfo)
-                self._field_info_base_class = cls._field_info_class
-                # self._field_info_class = type("LIBYTFIELDINFO", self._field_info_base_class.__bases__,
-                #                               dict(self._field_info_base_class.__dict__))
+                # TODO: Take this step to libyt/fields.py (class libytFieldInfo)
+                self._field_info_class = cls._field_info_class
+                # Step1 : Read from param_yt['field_list']
                 self.fluid_types += (self._code_frontend,)
 
                 break
