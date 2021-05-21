@@ -246,8 +246,7 @@ class libytDataset(Dataset):
 
                 # Step3 : Add add_fields to known_other_fields, and convert it back to tuple
                 known_other_fields = known_other_fields + add_fields
-                mylog.debug("add_fields = %s" % add_fields)
-                tuple(known_other_fields)
+                self._field_info_class.known_other_fields = tuple(known_other_fields)
 
                 break
         else:
