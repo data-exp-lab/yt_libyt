@@ -218,12 +218,36 @@ class libytDataset(Dataset):
             mylog.debug("cls = %s", cls)
 
             if self._code_frontend == name[0:-len('Dataset')].lower():
-
                 self._code_dataset = name
-                # TODO: Take this step to libyt/fields.py (class libytFieldInfo)
                 self._field_info_class = cls._field_info_class
-                # Step1 : Read from param_yt['field_list']
                 self.fluid_types += (self._code_frontend,)
+
+                # Read from param_yt['field_list'] and update the cls._field_info_class.
+                # This action accumulates in each round, cause we change the class
+                # static variable in cls._field_info_class.
+                field_list = self.libyt.param_yt['field_list']
+                known_other_fields = list(self._field_info_class.known_other_fields)
+                add_fields = []
+                for field_name in field_list.keys():
+                    # Step1 : Check if field_name is already inside known_other_fields
+                    field_exist = False
+                    for index in range(len(known_other_fields)):
+                        if field_name == known_other_fields[index][0]:
+                            field_exist = True
+                            # Step2 : If field_name exists, append alias names
+                            known_other_fields[index][1][1].append(field_list[field_name]['field_name_alias'])
+                            break
+                    # Step2 : If field_name doesn't exist, add a new field to add_fields list
+                    if field_exist == False:
+                        new_field = (field_name, (field_list[field_name]['field_unit'],
+                                                  field_list[field_name]['field_name_alias'],
+                                                  field_list[field_name]['field_display_name']))
+                        add_fields.append(new_field)
+
+                # Step3 : Add add_fields to known_other_fields, and convert it back to tuple
+                known_other_fields = known_other_fields + add_fields
+                mylog.debug("add_fields = %s" % add_fields)
+                tuple(known_other_fields)
 
                 break
         else:
@@ -234,6 +258,9 @@ class libytDataset(Dataset):
         mylog.info('libyt: code dataset       = %s' % self._code_dataset)
         mylog.info('libyt: FieldInfo subclass = %s' % self._field_info_class)
         mylog.info('libyt: fluid type         = %s' % self._code_frontend)
+
+        for i in range(len(cls._field_info_class.known_other_fields)):
+            mylog.debug("known_other_fields = %s" % cls._field_info_class.known_other_fields[i][0])
 
         Dataset.__init__(self, "libytHasNoParameterFile", self._dataset_type,
                          units_override=units_override,
@@ -253,6 +280,9 @@ class libytDataset(Dataset):
         # user-specific parameters
         # TODO: libyt yt_add_user_parameter, haven't used this function
         self.parameters.update(self.libyt.param_user)
+
+        # TODO: Check the yt_field field_list
+        mylog.debug("field_list = %s", self.libyt.param_yt['field_list'])
 
         # yt-specific parameters
         param_yt = self.libyt.param_yt

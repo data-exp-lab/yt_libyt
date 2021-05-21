@@ -188,7 +188,7 @@ class IOHandlerlibyt(BaseIOHandler):
 ### for ghost_zones != 0
 #                   data_view = self.grid_data[g.id][fname][self.my_slice].swapaxes(0,2)
                     # TODO: Make this function return data-type that yt needs, modified if needed.
-                    if field_list[fname] == "face-centered":
+                    if field_list[fname]["field_define_type"] == "face-centered":
                         # convert to cell-centered
                         data_temp = self.grid_data[g.id][fname]
                         axis = np.argmax(data_temp.shape)
