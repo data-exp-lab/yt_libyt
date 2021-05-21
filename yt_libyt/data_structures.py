@@ -234,8 +234,11 @@ class libytDataset(Dataset):
                     for index in range(len(known_other_fields)):
                         if field_name == known_other_fields[index][0]:
                             field_exist = True
-                            # Step2 : If field_name exists, append alias names
-                            known_other_fields[index][1][1].append(field_list[field_name]['field_name_alias'])
+                            # Step2 : If field_name exists, append alias names one by one is it's not in the name
+                            # list yet
+                            for name_alias in field_list[field_name]['field_name_alias']:
+                                if name_alias not in known_other_fields[index][1][1]:
+                                    known_other_fields[index][1][1].append(name_alias)
                             break
                     # Step2 : If field_name doesn't exist, add a new field to add_fields list
                     if field_exist == False:
@@ -259,7 +262,10 @@ class libytDataset(Dataset):
         mylog.info('libyt: fluid type         = %s' % self._code_frontend)
 
         for i in range(len(cls._field_info_class.known_other_fields)):
-            mylog.debug("known_other_fields = %s" % cls._field_info_class.known_other_fields[i][0])
+            mylog.debug("known_other_fields = %s, %s, %s, %s" % (cls._field_info_class.known_other_fields[i][0],
+                                                                 cls._field_info_class.known_other_fields[i][1][0],
+                                                                 cls._field_info_class.known_other_fields[i][1][1],
+                                                                 cls._field_info_class.known_other_fields[i][1][2]))
 
         Dataset.__init__(self, "libytHasNoParameterFile", self._dataset_type,
                          units_override=units_override,
