@@ -187,8 +187,10 @@ class IOHandlerlibyt(BaseIOHandler):
                     mylog.debug("ftype, fname = %s", field)
 ### for ghost_zones != 0
 #                   data_view = self.grid_data[g.id][fname][self.my_slice].swapaxes(0,2)
-                    # TODO: Make this function return data-type that yt needs, modified if needed.
-                    if field_list[fname]["field_define_type"] == "face-centered":
+                    if field_list[fname]["field_define_type"] == "cell-centered":
+                        mylog.debug("self.grid_data[g.id][fname].shape = %s", self.grid_data[g.id][fname].shape)
+                        data_view = self.grid_data[g.id][fname][:, :, :].swapaxes(0, 2)
+                    elif field_list[fname]["field_define_type"] == "face-centered":
                         # convert to cell-centered
                         data_temp = self.grid_data[g.id][fname]
                         axis = np.argmax(data_temp.shape)
@@ -199,9 +201,14 @@ class IOHandlerlibyt(BaseIOHandler):
                         if axis == 2:
                             data_convert = 0.5 * (data_temp[:,:,:-1] + data_temp[:,:,1:])
                         data_view = data_convert.swapaxes(0,2)
+                    elif field_list[fname]["field_define_type"] == "derived_func":
+                        data_convert = self.libyt.derived_func(g.id, fname)
+                        data_view = data_convert.swapaxes(0,2)
                     else:
-                        mylog.debug("self.grid_data[g.id][fname].shape = %s", self.grid_data[g.id][fname].shape)
-                        data_view = self.grid_data[g.id][fname][:, :, :].swapaxes(0, 2)
+                        # Since we only supports "cell-centered", "face-centered", "derived_func" tags for now
+                        # Raise an error if enter this block.
+                        raise ValueError("libyt does not have field_define_type [ %s ]" %
+                                         (field_list[fname]["field_define_type"]))
 
                     offset   += g.select(selector, data_view, rv[field], offset)
         assert(offset == fsize)
