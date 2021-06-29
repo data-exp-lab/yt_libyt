@@ -189,8 +189,9 @@ class IOHandlerlibyt(BaseIOHandler):
 #                   data_view = self.grid_data[g.id][fname][self.my_slice].swapaxes(0,2)
                     if field_list[fname]["field_define_type"] == "cell-centered":
                         mylog.debug("self.grid_data[g.id][fname].shape = %s", self.grid_data[g.id][fname].shape)
-                        data_view = self.grid_data[g.id][fname][:, :, :].swapaxes(0, 2)
+                        data_convert = self.grid_data[g.id][fname][:, :, :]
                     elif field_list[fname]["field_define_type"] == "face-centered":
+                        # TODO: This function is not quite correct, if size of patch is not square.
                         # convert to cell-centered
                         data_temp = self.grid_data[g.id][fname]
                         axis = np.argmax(data_temp.shape)
@@ -200,15 +201,17 @@ class IOHandlerlibyt(BaseIOHandler):
                             data_convert = 0.5 * (data_temp[:,:-1,:] + data_temp[:,1:,:])
                         if axis == 2:
                             data_convert = 0.5 * (data_temp[:,:,:-1] + data_temp[:,:,1:])
-                        data_view = data_convert.swapaxes(0,2)
                     elif field_list[fname]["field_define_type"] == "derived_func":
                         data_convert = self.libyt.derived_func(g.id, fname)
-                        data_view = data_convert.swapaxes(0,2)
                     else:
                         # Since we only supports "cell-centered", "face-centered", "derived_func" tags for now
                         # Raise an error if enter this block.
                         raise ValueError("libyt does not have field_define_type [ %s ]" %
                                          (field_list[fname]["field_define_type"]))
+
+                    # Swap axes or not
+                    if field_list[fname]["swap_axes"] == True:
+                        data_view = data_convert.swapaxes(0,2)
 
                     offset   += g.select(selector, data_view, rv[field], offset)
         assert(offset == fsize)
