@@ -311,11 +311,20 @@ class libytDataset(Dataset):
         # TODO: Make it more universal
         #       [Option 1]: yt_add_user_parameter
         if (self._code_frontend == "gamer"):
+
+            # MHD
             try:
                 self.mhd = self.libyt.param_user["mhd"]
             except KeyError:
                 mylog.debug("libyt.param_user[\"mhd\"] not set!")
                 self.mhd = 0
+
+            # Model == Hydro
+            try:
+                self.gamma = self.libyt.param_user["gamma"]
+                self.mu    = self.libyt.param_user["mu"]
+            except KeyError:
+                mylog.debug("Not in Model == Hydro mode, \"gamma\" and \"mu\" not set!")
 
 
     def _obtain_libyt(self):
