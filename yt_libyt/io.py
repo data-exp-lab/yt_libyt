@@ -156,6 +156,7 @@ class IOHandlerlibyt(BaseIOHandler):
         rv     = {}
         chunks = list(chunks)
 
+        # TODO: Need careful check for this if block
         if selector.__class__.__name__ == "GridSelector":
             if not ( len(chunks) == len(chunks[0].objs) == 1 ):
                 raise RuntimeError
@@ -167,6 +168,7 @@ class IOHandlerlibyt(BaseIOHandler):
 
             return rv
 
+        # TODO: Need careful check for this if block
         if size is None:
             size = sum( (g.count(selector) for chunk in chunks for g in chunk.objs) )
 
@@ -179,12 +181,12 @@ class IOHandlerlibyt(BaseIOHandler):
         mylog.debug( "Reading %s cells of %s fields in %s grids",
                      size, [f2 for f1, f2 in fields], ng )
 
-        offset = 0
-        for chunk in chunks:
-            for g in chunk.objs:
-                for field in fields:
-                    ftype, fname = field
-                    mylog.debug("ftype, fname = %s", field)
+        for field in fields:
+            offset = 0
+            ftype, fname = field
+            mylog.debug("ftype, fname = %s", field)
+            for chunk in chunks:
+                for g in chunk.objs:
 ### for ghost_zones != 0
 #                   data_view = self.grid_data[g.id][fname][self.my_slice].swapaxes(0,2)
                     if field_list[fname]["field_define_type"] == "cell-centered":
