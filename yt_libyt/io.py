@@ -46,6 +46,7 @@ class IOHandlerlibyt(BaseIOHandler):
         self.ds           = ds
         self.grid_data    = libyt.grid_data
         self.param_yt     = libyt.param_yt
+        self.hierarchy    = libyt.hierarchy
         self._field_dtype = "float64"
 
 ###     ghost_zones != 0 is not supported yet
@@ -55,8 +56,20 @@ class IOHandlerlibyt(BaseIOHandler):
 
 
     def _read_particle_coords(self, chunks, ptf):
-        pass
-#       chunks = list(chunks)   # generator --> list
+        chunks = list(chunks)
+
+        mylog.debug("self.grid_data.keys() = %s", self.grid_data.keys())
+
+        for chunk in chunks:
+            for g in chunk.objs:
+                # TODO: Probably need additional check if grid_local in libyt contains the g.id
+                # or we can do it in libyt python module
+
+                # if grid_particle_count in that grid is zero, continue
+                if self.hierarchy['grid_particle_count'][g.id] == 0:
+                    continue
+                # else, fetch the position x/y/z of particle
+
 #       p_idx  = self.ds.index._particle_indices
 
 #       # shortcuts
@@ -189,6 +202,7 @@ class IOHandlerlibyt(BaseIOHandler):
                 for g in chunk.objs:
 ### for ghost_zones != 0
 #                   data_view = self.grid_data[g.id][fname][self.my_slice].swapaxes(0,2)
+                    # TODO: self.grid_data has all the g.id as keys, so we probably need additional check to prevent not parallel
                     if field_list[fname]["field_define_type"] == "cell-centered":
                         mylog.debug("self.grid_data[g.id][fname].shape = %s", self.grid_data[g.id][fname].shape)
                         data_convert = self.grid_data[g.id][fname][:, :, :]

@@ -68,15 +68,24 @@ class libytHierarchy(GridIndex):
         GridIndex.__init__(self, ds, dataset_type)
 
     def _detect_output_fields(self):
+        mylog.debug("#FLAG#")
+        mylog.debug("yt/frontends/libyt/data_structures.py (class libytHierarchy, def _detect_output_fields())")
+
         # assuming all grids have the same fields
         gid = 0
         self.field_list = [(self.dataset._code_frontend, v) for v in self.libyt.grid_data[gid].keys()]
 
         # TODO: particle fields
-        # assuming all particles have the same fields
+        par_type_list = []
+        particle_list = self.libyt.param_yt['particle_list']
+        for par_name in particle_list.keys():
+            par_type_list.append( (particle_list[par_name]['par_type'], par_name) )
 
-    #       if self._group_particle is not None:
-    #           self.field_list += [ ('io', v) for v in self._group_particle.keys() ]
+        self.field_list = self.field_list + par_type_list
+
+        mylog.debug("self.field_list = %s", self.field_list)
+
+        mylog.debug("###### (class libytHierarchy, def _detect_output_fields())")
 
     def _count_grids(self):
         self.num_grids = self.libyt.param_yt['num_grids']
@@ -234,13 +243,13 @@ class libytDataset(Dataset):
                     for index in range(len(known_other_fields)):
                         if field_name == known_other_fields[index][0]:
                             field_exist = True
-                            # Step2 : If field_name exists, append alias names one by one is it's not in the name
+                            # Step2 : If field_name exists, append alias names one by one if it's not in the name
                             # list yet
                             for name_alias in field_list[field_name]['field_name_alias']:
                                 if name_alias not in known_other_fields[index][1][1]:
                                     known_other_fields[index][1][1].append(name_alias)
                             break
-                    # Step2 : If field_name doesn't exist, add a new field to add_fields list
+                    # Step2 : If field_name doesn't exist in known_other_fields, add a new field to add_fields list
                     if field_exist == False:
                         new_field = (field_name, (field_list[field_name]['field_unit'],
                                                   field_list[field_name]['field_name_alias'],
@@ -250,6 +259,30 @@ class libytDataset(Dataset):
                 # Step3 : Add add_fields to known_other_fields, and convert it back to tuple
                 known_other_fields = known_other_fields + add_fields
                 self._field_info_class.known_other_fields = tuple(known_other_fields)
+
+                # Read from param_yt['particle_list'] and update the cls._field_info_class.
+                # Repeat what we've done in known_other_fields.
+                particle_list = self.libyt.param_yt['particle_list']
+                known_particle_fields = list(self._field_info_class.known_particle_fields)
+                add_particles = []
+                for par_name in particle_list.keys():
+                    par_exist = False
+                    for index in range(len(known_particle_fields)):
+                        if par_name == known_particle_fields[index][0]:
+                            par_exist = True
+                            for name_alias in particle_list[par_name]['par_name_alias']:
+                                if name_alias not in known_particle_fields[index][1][1]:
+                                    known_particle_fields[index][1][1].append(name_alias)
+                            break
+                    if par_exist == False:
+                        new_par = (par_name, (particle_list[par_name]['par_unit'],
+                                              particle_list[par_name]['par_name_alias'],
+                                              particle_list[par_name]['par_display_name']))
+                        add_particles.append(new_par)
+
+                known_particle_fields = known_particle_fields + add_particles
+                self._field_info_class.known_particle_fields = tuple(known_particle_fields)
+
 
                 break
         else:
@@ -266,6 +299,12 @@ class libytDataset(Dataset):
                                                                  cls._field_info_class.known_other_fields[i][1][0],
                                                                  cls._field_info_class.known_other_fields[i][1][1],
                                                                  cls._field_info_class.known_other_fields[i][1][2]))
+
+        for i in range(len(cls._field_info_class.known_particle_fields)):
+            mylog.debug("known_particle_fields = %s, %s, %s, %s" % (cls._field_info_class.known_particle_fields[i][0],
+                                                                    cls._field_info_class.known_particle_fields[i][1][0],
+                                                                    cls._field_info_class.known_particle_fields[i][1][1],
+                                                                    cls._field_info_class.known_particle_fields[i][1][2]))
 
         Dataset.__init__(self, "libytHasNoParameterFile", self._dataset_type,
                          units_override=units_override,
@@ -288,6 +327,11 @@ class libytDataset(Dataset):
 
         # TODO: Check the yt_field field_list
         mylog.debug("field_list = %s", self.libyt.param_yt['field_list'])
+
+        try:
+            mylog.debug("particle_list = %s", self.libyt.param_yt['particle_list'])
+        except:
+            mylog.debug("No particle_list.")
 
         # yt-specific parameters
         param_yt = self.libyt.param_yt
