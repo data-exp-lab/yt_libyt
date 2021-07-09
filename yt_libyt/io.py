@@ -63,67 +63,51 @@ class IOHandlerlibyt(BaseIOHandler):
         for chunk in chunks:
             for g in chunk.objs:
                 # TODO: Probably need additional check if grid_local in libyt contains the g.id
-                # or we can do it in libyt python module
+                # do it in libyt python module
 
                 # if grid_particle_count in that grid is zero, continue
                 if self.hierarchy['grid_particle_count'][g.id] == 0:
                     continue
-                # else, fetch the position x/y/z of particle
 
-#       p_idx  = self.ds.index._particle_indices
-
-#       # shortcuts
-#       par_posx = self._group_particle["ParPosX"]
-#       par_posy = self._group_particle["ParPosY"]
-#       par_posz = self._group_particle["ParPosZ"]
-
-#       # currently libyt does not support multiple particle types
-#       assert( len(ptf) == 1 )
-#       ptype = list( ptf.keys() )[0]
-
-#       for chunk in chunks:
-#           for g1, g2 in particle_sequences(chunk.objs):
-#               start = p_idx[g1.id    ]
-#               end   = p_idx[g2.id + 1]
-#               x     = np.asarray( par_posx[start:end], dtype=self._field_dtype )
-#               y     = np.asarray( par_posy[start:end], dtype=self._field_dtype )
-#               z     = np.asarray( par_posz[start:end], dtype=self._field_dtype )
-#               yield ptype, (x, y, z)
+                # else, fetch the position x/y/z of particle by ptype
+                for ptype in ptf.keys():
+                    coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
+                    x = self.libyt.get_attr(g.id, ptype, coor_label[0])
+                    y = self.libyt.get_attr(g.id, ptype, coor_label[1])
+                    z = self.libyt.get_attr(g.id, ptype, coor_label[2])
+                    yield ptype, (x, y, z)
 
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        pass
-#       chunks = list(chunks)   # generator --> list
-#       p_idx  = self.ds.index._particle_indices
+        chunks = list(chunks)
+        for chunk in chunks:
+            for g in chunk.objs:
+                # TODO: Probably need additional check if grid_local in libyt contains the g.id
+                # do it in libyt python module
 
-#       # shortcuts
-#       par_posx = self._group_particle["ParPosX"]
-#       par_posy = self._group_particle["ParPosY"]
-#       par_posz = self._group_particle["ParPosZ"]
+                # if grid_particle_count in that grid is zero, continue
+                if self.hierarchy['grid_particle_count'][g.id] == 0:
+                    continue
 
-#       # currently libyt does not support multiple particle types
-#       assert( len(ptf) == 1 )
-#       ptype   = list( ptf.keys() )[0]
-#       pfields = ptf[ptype]
+                # else, fetch the position x/y/z of particle by ptype
+                for ptype in ptf.keys():
+                    coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
+                    x = self.libyt.get_attr(g.id, ptype, coor_label[0])
+                    y = self.libyt.get_attr(g.id, ptype, coor_label[1])
+                    z = self.libyt.get_attr(g.id, ptype, coor_label[2])
 
-#       for chunk in chunks:
-#           for g1, g2 in particle_sequences(chunk.objs):
-#               start = p_idx[g1.id    ]
-#               end   = p_idx[g2.id + 1]
-#               x     = np.asarray( par_posx[start:end], dtype=self._field_dtype )
-#               y     = np.asarray( par_posy[start:end], dtype=self._field_dtype )
-#               z     = np.asarray( par_posz[start:end], dtype=self._field_dtype )
+                    mask = selector.select_points(x, y, z, 0.0)
+                    if mask is None:
+                        continue
 
-#               mask = selector.select_points(x, y, z, 0.0)
-#               if mask is None: continue
-
-#               for field in pfields:
-#                   data = self._group_particle[field][start:end]
-#                   yield (ptype, field), data[mask]
+                    for field in ptf[ptype]:
+                        data = self.libyt.get_attr(g.id, ptype, field)
+                        yield (ptype, field), data[mask]
 
 
     def _read_chunk_data(self, chunk, fields):
         pass
+        # TODO: Check this
 #       rv = {}
 #       if len(chunk.objs) == 0: return rv
 

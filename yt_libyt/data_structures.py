@@ -75,13 +75,10 @@ class libytHierarchy(GridIndex):
         gid = 0
         self.field_list = [(self.dataset._code_frontend, v) for v in self.libyt.grid_data[gid].keys()]
 
-        # TODO: particle fields
-        par_type_list = []
-        particle_list = self.libyt.param_yt['particle_list']
-        for par_name in particle_list.keys():
-            par_type_list.append( (particle_list[par_name]['par_type'], par_name) )
-
-        self.field_list = self.field_list + par_type_list
+        # appending particle fields
+        for ptype in self.libyt.param_yt['particle_list'].keys():
+            attribute = self.libyt.param_yt['particle_list'][ptype]['attribute']
+            self.field_list += [(ptype, particle) for particle in attribute.keys()]
 
         mylog.debug("self.field_list = %s", self.field_list)
 
@@ -234,54 +231,59 @@ class libytDataset(Dataset):
                 # Read from param_yt['field_list'] and update the cls._field_info_class.
                 # This action accumulates in each round, cause we change the class
                 # static variable in cls._field_info_class.
-                field_list = self.libyt.param_yt['field_list']
-                known_other_fields = list(self._field_info_class.known_other_fields)
-                add_fields = []
-                for field_name in field_list.keys():
-                    # Step1 : Check if field_name is already inside known_other_fields
-                    field_exist = False
-                    for index in range(len(known_other_fields)):
-                        if field_name == known_other_fields[index][0]:
-                            field_exist = True
-                            # Step2 : If field_name exists, append alias names one by one if it's not in the name
-                            # list yet
-                            for name_alias in field_list[field_name]['field_name_alias']:
-                                if name_alias not in known_other_fields[index][1][1]:
-                                    known_other_fields[index][1][1].append(name_alias)
-                            break
-                    # Step2 : If field_name doesn't exist in known_other_fields, add a new field to add_fields list
-                    if field_exist == False:
-                        new_field = (field_name, (field_list[field_name]['field_unit'],
-                                                  field_list[field_name]['field_name_alias'],
-                                                  field_list[field_name]['field_display_name']))
-                        add_fields.append(new_field)
+                try:
+                    field_list = self.libyt.param_yt['field_list']
+                    known_other_fields = list(self._field_info_class.known_other_fields)
+                    add_fields = []
+                    for field_name in field_list.keys():
+                        # Step1 : Check if field_name is already inside known_other_fields
+                        field_exist = False
+                        for index in range(len(known_other_fields)):
+                            if field_name == known_other_fields[index][0]:
+                                field_exist = True
+                                # Step2 : If field_name exists, append alias names one by one if it's not in the name
+                                # list yet
+                                for name_alias in field_list[field_name]['field_name_alias']:
+                                    if name_alias not in known_other_fields[index][1][1]:
+                                        known_other_fields[index][1][1].append(name_alias)
+                                break
+                        # Step2 : If field_name doesn't exist in known_other_fields, add a new field to add_fields list
+                        if field_exist == False:
+                            new_field = (field_name, (field_list[field_name]['field_unit'],
+                                                      field_list[field_name]['field_name_alias'],
+                                                      field_list[field_name]['field_display_name']))
+                            add_fields.append(new_field)
 
-                # Step3 : Add add_fields to known_other_fields, and convert it back to tuple
-                known_other_fields = known_other_fields + add_fields
-                self._field_info_class.known_other_fields = tuple(known_other_fields)
+                    # Step3 : Add add_fields to known_other_fields, and convert it back to tuple
+                    known_other_fields = known_other_fields + add_fields
+                    self._field_info_class.known_other_fields = tuple(known_other_fields)
+                except:
+                    mylog.debug("No self.libyt.param_yt['field_list'].")
 
                 # Read from param_yt['particle_list'] and update the cls._field_info_class.
-                # Repeat what we've done in known_other_fields.
-                particle_list = self.libyt.param_yt['particle_list']
-                known_particle_fields = list(self._field_info_class.known_particle_fields)
-                add_particles = []
-                for par_name in particle_list.keys():
-                    par_exist = False
-                    for index in range(len(known_particle_fields)):
-                        if par_name == known_particle_fields[index][0]:
-                            par_exist = True
-                            for name_alias in particle_list[par_name]['par_name_alias']:
-                                if name_alias not in known_particle_fields[index][1][1]:
-                                    known_particle_fields[index][1][1].append(name_alias)
-                            break
-                    if par_exist == False:
-                        new_par = (par_name, (particle_list[par_name]['par_unit'],
-                                              particle_list[par_name]['par_name_alias'],
-                                              particle_list[par_name]['par_display_name']))
-                        add_particles.append(new_par)
+                try:
+                    particle_list = self.libyt.param_yt['particle_list']
+                    known_particle_fields = list(self._field_info_class.known_particle_fields)
+                    add_particle = []
+                    for ptype in particle_list.keys():
+                        attribute = particle_list[ptype]["attribute"]
+                        for particle in attribute.keys():
+                            par_exist = False
+                            for index in range(len(known_particle_fields)):
+                                if particle == known_particle_fields[index][0]:
+                                    par_exist = True
+                                    for name_alias in attribute[particle][1]:
+                                        if name_alias not in known_particle_fields[index][1][1]:
+                                            known_particle_fields[index][1][1].append(name_alias)
+                                    break
 
-                known_particle_fields = known_particle_fields + add_particles
-                self._field_info_class.known_particle_fields = tuple(known_particle_fields)
+                            if par_exist == False:
+                                add_particle.append((particle, tuple(attribute[particle])))
+
+                    known_particle_fields = known_particle_fields + add_particle
+                    self._field_info_class.known_particle_fields = tuple(known_particle_fields)
+                except:
+                    mylog.debug("No self.libyt.param_yt['particle_list'].")
 
 
                 break
