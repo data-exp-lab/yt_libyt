@@ -71,14 +71,24 @@ class libytHierarchy(GridIndex):
         mylog.debug("#FLAG#")
         mylog.debug("yt/frontends/libyt/data_structures.py (class libytHierarchy, def _detect_output_fields())")
 
-        # assuming all grids have the same fields
-        gid = 0
-        self.field_list = [(self.dataset._code_frontend, v) for v in self.libyt.grid_data[gid].keys()]
+        try:
+            # Just want to make sure that num_field > 0, which is field_list exist.
+            temp = self.libyt.param_yt['field_list']
+            # assuming all grids have the same fields
+            gid = 0
+            self.field_list = [(self.dataset._code_frontend, v) for v in self.libyt.grid_data[gid].keys()]
+        except:
+            mylog.debug("No field.")
+
 
         # appending particle fields
-        for ptype in self.libyt.param_yt['particle_list'].keys():
-            attribute = self.libyt.param_yt['particle_list'][ptype]['attribute']
-            self.field_list += [(ptype, particle) for particle in attribute.keys()]
+        try:
+            particle_list = self.libyt.param_yt['particle_list']
+            for ptype in particle_list.keys():
+                attribute = particle_list[ptype]['attribute']
+                self.field_list += [(ptype, particle) for particle in attribute.keys()]
+        except:
+            mylog.debug("No particle.")
 
         mylog.debug("self.field_list = %s", self.field_list)
 
