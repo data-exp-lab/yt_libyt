@@ -62,9 +62,6 @@ class IOHandlerlibyt(BaseIOHandler):
 
         for chunk in chunks:
             for g in chunk.objs:
-                # TODO: Probably need additional check if grid_local in libyt contains the g.id
-                # do it in libyt python module
-
                 # if grid_particle_count in that grid is zero, continue
                 if self.hierarchy['grid_particle_count'][g.id] == 0:
                     continue
@@ -72,6 +69,8 @@ class IOHandlerlibyt(BaseIOHandler):
                 # else, fetch the position x/y/z of particle by ptype
                 for ptype in ptf.keys():
                     coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
+                    if None in coor_label:
+                        raise NotImplementedError("coor_x, coor_y, coor_z label not set!")
                     x = self.libyt.get_attr(g.id, ptype, coor_label[0])
                     y = self.libyt.get_attr(g.id, ptype, coor_label[1])
                     z = self.libyt.get_attr(g.id, ptype, coor_label[2])
@@ -82,9 +81,6 @@ class IOHandlerlibyt(BaseIOHandler):
         chunks = list(chunks)
         for chunk in chunks:
             for g in chunk.objs:
-                # TODO: Probably need additional check if grid_local in libyt contains the g.id
-                # do it in libyt python module
-
                 # if grid_particle_count in that grid is zero, continue
                 if self.hierarchy['grid_particle_count'][g.id] == 0:
                     continue
@@ -92,6 +88,8 @@ class IOHandlerlibyt(BaseIOHandler):
                 # else, fetch the position x/y/z of particle by ptype
                 for ptype in ptf.keys():
                     coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
+                    if None in coor_label:
+                        raise NotImplementedError("coor_x, coor_y, coor_z label not set!")
                     x = self.libyt.get_attr(g.id, ptype, coor_label[0])
                     y = self.libyt.get_attr(g.id, ptype, coor_label[1])
                     z = self.libyt.get_attr(g.id, ptype, coor_label[2])
