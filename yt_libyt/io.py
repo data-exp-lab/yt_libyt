@@ -62,7 +62,8 @@ class IOHandlerlibyt(BaseIOHandler):
 
         for chunk in chunks:
             for g in chunk.objs:
-                # if grid_particle_count in that grid is zero, continue
+                # if grid_particle_count, which is sum of all particle number
+                # in that grid is zero, continue
                 if self.hierarchy['grid_particle_count'][g.id] == 0:
                     continue
 
@@ -74,14 +75,21 @@ class IOHandlerlibyt(BaseIOHandler):
                     x = self.libyt.get_attr(g.id, ptype, coor_label[0])
                     y = self.libyt.get_attr(g.id, ptype, coor_label[1])
                     z = self.libyt.get_attr(g.id, ptype, coor_label[2])
-                    yield ptype, (x, y, z)
+
+                    # if ptype particle num in grid g.id = 0, get_attr will return None.
+                    # then we shall continue the loop
+                    if x is None or y is None or z is None:
+                        continue
+                    else:
+                        yield ptype, (x, y, z)
 
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
         for chunk in chunks:
             for g in chunk.objs:
-                # if grid_particle_count in that grid is zero, continue
+                # if grid_particle_count, which is sum of all particle number
+                # in that grid is zero, continue
                 if self.hierarchy['grid_particle_count'][g.id] == 0:
                     continue
 
@@ -100,7 +108,12 @@ class IOHandlerlibyt(BaseIOHandler):
 
                     for field in ptf[ptype]:
                         data = self.libyt.get_attr(g.id, ptype, field)
-                        yield (ptype, field), data[mask]
+                        # if ptype particle num in grid g.id = 0, get_attr will return None.
+                        # then we shall continue the loop
+                        if data is None:
+                            continue
+                        else:
+                            yield (ptype, field), data[mask]
 
 
     def _read_chunk_data(self, chunk, fields):
