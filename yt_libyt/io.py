@@ -70,7 +70,7 @@ class IOHandlerlibyt(BaseIOHandler):
                 for ptype in ptf.keys():
                     coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
                     if None in coor_label:
-                        raise NotImplementedError("coor_x, coor_y, coor_z label not set!")
+                        raise ValueError("coor_x, coor_y, coor_z label not set!")
                     x = self.libyt.get_attr(g.id, ptype, coor_label[0])
                     y = self.libyt.get_attr(g.id, ptype, coor_label[1])
                     z = self.libyt.get_attr(g.id, ptype, coor_label[2])
@@ -89,7 +89,7 @@ class IOHandlerlibyt(BaseIOHandler):
                 for ptype in ptf.keys():
                     coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
                     if None in coor_label:
-                        raise NotImplementedError("coor_x, coor_y, coor_z label not set!")
+                        raise ValueError("coor_x, coor_y, coor_z label not set!")
                     x = self.libyt.get_attr(g.id, ptype, coor_label[0])
                     y = self.libyt.get_attr(g.id, ptype, coor_label[1])
                     z = self.libyt.get_attr(g.id, ptype, coor_label[2])
