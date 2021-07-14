@@ -244,7 +244,6 @@ class libytDataset(Dataset):
                 try:
                     field_list = self.libyt.param_yt['field_list']
                     known_other_fields = list(self._field_info_class.known_other_fields)
-                    add_fields = []
                     for field_name in field_list.keys():
                         # Step1 : Check if field_name is already inside known_other_fields
                         field_exist = False
@@ -262,10 +261,9 @@ class libytDataset(Dataset):
                             new_field = (field_name, (field_list[field_name]['field_unit'],
                                                       field_list[field_name]['field_name_alias'],
                                                       field_list[field_name]['field_display_name']))
-                            add_fields.append(new_field)
+                            known_other_fields.append(new_field)
 
-                    # Step3 : Add add_fields to known_other_fields, and convert it back to tuple
-                    known_other_fields = known_other_fields + add_fields
+                    # Step3 : convert it back to tuple
                     self._field_info_class.known_other_fields = tuple(known_other_fields)
                 except:
                     mylog.debug("No self.libyt.param_yt['field_list'].")
@@ -274,7 +272,6 @@ class libytDataset(Dataset):
                 try:
                     particle_list = self.libyt.param_yt['particle_list']
                     known_particle_fields = list(self._field_info_class.known_particle_fields)
-                    add_particle = []
                     for ptype in particle_list.keys():
                         attribute = particle_list[ptype]["attribute"]
                         for particle in attribute.keys():
@@ -288,9 +285,8 @@ class libytDataset(Dataset):
                                     break
 
                             if par_exist == False:
-                                add_particle.append((particle, tuple(attribute[particle])))
+                                known_particle_fields.append((particle, tuple(attribute[particle])))
 
-                    known_particle_fields = known_particle_fields + add_particle
                     self._field_info_class.known_particle_fields = tuple(known_particle_fields)
                 except:
                     mylog.debug("No self.libyt.param_yt['particle_list'].")
