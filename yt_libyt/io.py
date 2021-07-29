@@ -76,8 +76,7 @@ class IOHandlerlibyt(BaseIOHandler):
                     y = self.libyt.get_attr(g.id, ptype, coor_label[1])
                     z = self.libyt.get_attr(g.id, ptype, coor_label[2])
 
-                    # g.id ptype particle number is 0 or g.id is not in local grids
-                    # libyt.get_attr will return None
+                    # g.id ptype particle number is 0, libyt.get_attr will return None
                     if x is None or y is None or z is None:
                         continue
                     else:
@@ -102,8 +101,7 @@ class IOHandlerlibyt(BaseIOHandler):
                     y = self.libyt.get_attr(g.id, ptype, coor_label[1])
                     z = self.libyt.get_attr(g.id, ptype, coor_label[2])
 
-                    # g.id ptype particle number is 0 or g.id is not in local grids
-                    # libyt.get_attr will return None
+                    # g.id ptype particle number is 0, libyt.get_attr will return None
                     if x is None or y is None or z is None:
                         continue
 
@@ -115,8 +113,6 @@ class IOHandlerlibyt(BaseIOHandler):
                         data = self.libyt.get_attr(g.id, ptype, field)
                         # if ptype particle num in grid g.id = 0, get_attr will return None.
                         # then we shall continue the loop
-                        # g.id ptype particle number is 0 or g.id is not in local grids
-                        # libyt.get_attr will return None
                         if data is None:
                             continue
                         else:
