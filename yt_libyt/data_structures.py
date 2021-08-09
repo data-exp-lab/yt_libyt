@@ -252,16 +252,13 @@ class libytDataset(Dataset):
                                 field_exist = True
                                 # Step2 : If field_name exists, append alias names one by one if it's not in the name
                                 # list yet
-                                for name_alias in field_list[field_name]['field_name_alias']:
+                                for name_alias in field_list[field_name]['attribute'][1]:
                                     if name_alias not in known_other_fields[index][1][1]:
                                         known_other_fields[index][1][1].append(name_alias)
                                 break
                         # Step2 : If field_name doesn't exist in known_other_fields, add a new field to add_fields list
-                        if field_exist == False:
-                            new_field = (field_name, (field_list[field_name]['field_unit'],
-                                                      field_list[field_name]['field_name_alias'],
-                                                      field_list[field_name]['field_display_name']))
-                            known_other_fields.append(new_field)
+                        if field_exist is False:
+                            known_other_fields.append((field_name, tuple(field_list[field_name]['attribute'])))
 
                     # Step3 : convert it back to tuple
                     self._field_info_class.known_other_fields = tuple(known_other_fields)
@@ -284,7 +281,7 @@ class libytDataset(Dataset):
                                             known_particle_fields[index][1][1].append(name_alias)
                                     break
 
-                            if par_exist == False:
+                            if par_exist is False:
                                 known_particle_fields.append((particle, tuple(attribute[particle])))
 
                     self._field_info_class.known_particle_fields = tuple(known_particle_fields)
