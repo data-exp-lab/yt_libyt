@@ -157,7 +157,7 @@ class libytHierarchy(GridIndex):
             grid._prepare_grid()
             grid._setup_dx()
 
-    def _chunk_io(self, dobj, cache = True, local_only = False):
+    def _chunk_io(self, dobj, cache=True, local_only=False):
 
         mylog.debug("#FLAG#")
         mylog.debug("yt/frontends/libyt/data_structures.py (class libytHierarchy, def _chunk_io())")
@@ -189,11 +189,11 @@ class libytHierarchy(GridIndex):
             # TODO: Check the "local_only", need to know the precedure.
             if local_only:
 
-                for g in gfiles[fn] :
+                for g in gfiles[fn]:
                     mylog.debug("g = %s, g.MPI_rank = %s, self.comm.rank = %s" % (g, g.MPI_rank, self.comm.rank))
 
                 gobjs = [g for g in gfiles[fn] if g.MPI_rank == self.comm.rank]
-                gfiles[fn] = gobjs 
+                gfiles[fn] = gobjs
             gs = gfiles[fn]
 
             mylog.debug("filter out gfiles[fn] = %s", gs)
@@ -201,8 +201,8 @@ class libytHierarchy(GridIndex):
             count = self._count_selection(dobj, gs)
 
             mylog.debug("######(class libytHierarchy, def _chunk_io())")
-            
-            yield YTDataChunk(dobj, "io", gs, count, cache = cache)
+
+            yield YTDataChunk(dobj, "io", gs, count, cache=cache)
 
 
 class libytDataset(Dataset):
@@ -210,7 +210,7 @@ class libytDataset(Dataset):
     _field_info_class = libytFieldInfo
     # _field_info_base_class = object
     _dataset_type = 'libyt'  # must set here since __init__() does not know dataset_type when calling it
-    _debug = False  #TODO: debug mode for libyt (not supported yet), some checks are in libyt C-library. Cannot open yet. Future use.
+    _debug = False  # TODO: debug mode for libyt (not supported yet), some checks are in libyt C-library. Cannot open yet. Future use.
     libyt = None
 
     def __init__(self,
@@ -288,7 +288,6 @@ class libytDataset(Dataset):
                 except:
                     mylog.debug("No self.libyt.param_yt['particle_list'].")
 
-
                 break
         else:
             # We assume that user's code has corresponding yt frontend, if not, terminate yt.
@@ -356,25 +355,15 @@ class libytDataset(Dataset):
         self.domain_dimensions = np.asarray(param_yt['domain_dimensions'])
         self.periodicity = np.asarray(param_yt['periodicity'])
 
-        # Just to make example/example run
-        # TODO: Make it more universal
-        #       [Option 1]: yt_add_user_parameter
-        if (self._code_frontend == "gamer"):
-
-            # MHD
+        # Load code specific parameters
+        for key in self.libyt.param_user.keys():
+            if hasattr(self, key):
+                mylog.debug("Overwrite existing attribute self.%s = %s in class libytDataset", key, getattr(self, key))
             try:
-                self.mhd = self.libyt.param_user["mhd"]
-            except KeyError:
-                mylog.debug("libyt.param_user[\"mhd\"] not set!")
-                self.mhd = 0
-
-            # Model == Hydro
-            try:
-                self.gamma = self.libyt.param_user["gamma"]
-                self.mu    = self.libyt.param_user["mu"]
-            except KeyError:
-                mylog.debug("Not in Model == Hydro mode, \"gamma\" and \"mu\" not set!")
-
+                setattr(self, key, self.libyt.param_user[key])
+                mylog.debug("Set attribute self.%s = %s in class libytDataset.", key, self.libyt.param_user[key])
+            except:
+                mylog.debug("Cannot add new attribute self.%s = %s", key, self.libyt.param_user[key])
 
     def _obtain_libyt(self):
         import libyt
@@ -384,4 +373,3 @@ class libytDataset(Dataset):
     def _is_valid(cls, *args, **kwargs):
         # always return false since libyt is used for inline analysis only
         return False
-
