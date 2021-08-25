@@ -186,7 +186,6 @@ class libytHierarchy(GridIndex):
         mylog.debug("local_only = %s", local_only)
 
         for fn in sorted(gfiles):
-            # TODO: Check the "local_only", need to know the precedure.
             if local_only:
 
                 for g in gfiles[fn]:
@@ -195,9 +194,6 @@ class libytHierarchy(GridIndex):
                 gobjs = [g for g in gfiles[fn] if g.MPI_rank == self.comm.rank]
                 gfiles[fn] = gobjs
             gs = gfiles[fn]
-
-            mylog.debug("filter out gfiles[fn] = %s", gs)
-
             count = self._count_selection(dobj, gs)
 
             mylog.debug("######(class libytHierarchy, def _chunk_io())")
@@ -326,7 +322,6 @@ class libytDataset(Dataset):
         self.unique_identifier = time.time()
 
         # user-specific parameters
-        # TODO: libyt yt_add_user_parameter, haven't used this function
         self.parameters.update(self.libyt.param_user)
 
         # TODO: Check the yt_field field_list
