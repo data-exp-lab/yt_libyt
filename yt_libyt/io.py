@@ -22,19 +22,6 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.selection_routines import AlwaysSelector
 
 
-
-# group grids with consecutive indices together to improve the I/O performance
-# --> grids are assumed to be sorted into ascending numerical order already
-#def grid_sequences(grids):
-#    for k, g in groupby( enumerate(grids), lambda i_x:i_x[0]-i_x[1].id ):
-#        seq = list(v[1] for v in g)
-#        yield seq
-
-#def particle_sequences(grids):
-#    for k, g in groupby( enumerate(grids), lambda i_x:i_x[0]-i_x[1].id ):
-#        seq = list(v[1] for v in g)
-#        yield seq[0], seq[-1]
-
 class IOHandlerlibyt(BaseIOHandler):
     _particle_reader = False
     _dataset_type    = "libyt"
@@ -118,7 +105,6 @@ class IOHandlerlibyt(BaseIOHandler):
                         else:
                             yield (ptype, field), data[mask]
 
-
     def _read_chunk_data(self, chunk, fields):
         pass
         # TODO: Check this
@@ -164,12 +150,12 @@ class IOHandlerlibyt(BaseIOHandler):
 
         mylog.debug("self.param_yt['field_list'] = %s", self.param_yt["field_list"])
         field_list = self.param_yt["field_list"]
-        rv     = {}
+        rv = {}
         chunks = list(chunks)
 
         # TODO: Need careful check for this if block
         if selector.__class__.__name__ == "GridSelector":
-            if not ( len(chunks) == len(chunks[0].objs) == 1 ):
+            if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             g = chunks[0].objs[0]
             for ftype, fname in fields:
@@ -181,16 +167,16 @@ class IOHandlerlibyt(BaseIOHandler):
 
         # TODO: Need careful check for this if block
         if size is None:
-            size = sum( (g.count(selector) for chunk in chunks for g in chunk.objs) )
+            size = sum((g.count(selector) for chunk in chunks for g in chunk.objs))
 
         for field in fields:
             ftype, fname = field
             fsize = size
             rv[field] = np.empty(fsize, dtype=self._field_dtype)
 
-        ng = sum( len(c.objs) for c in chunks )
-        mylog.debug( "Reading %s cells of %s fields in %s grids",
-                     size, [f2 for f1, f2 in fields], ng )
+        ng = sum(len(c.objs) for c in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s grids",
+                    size, [f2 for f1, f2 in fields], ng)
 
         for field in fields:
             offset = 0
@@ -198,23 +184,30 @@ class IOHandlerlibyt(BaseIOHandler):
             mylog.debug("ftype, fname = %s", field)
             for chunk in chunks:
                 for g in chunk.objs:
-### for ghost_zones != 0
-#                   data_view = self.grid_data[g.id][fname][self.my_slice].swapaxes(0,2)
-                    # TODO: self.grid_data has all the g.id as keys, so we probably need additional check to prevent not parallel
+                    ### for ghost_zones != 0
+                    #                   data_view = self.grid_data[g.id][fname][self.my_slice].swapaxes(0,2)
+                    # TODO: self.grid_data has all the g.id as keys, so we probably need additional check to prevent
+                    #       getting None object, which means current rank does not have the grid.
                     if field_list[fname]["field_define_type"] == "cell-centered":
                         mylog.debug("self.grid_data[g.id][fname].shape = %s", self.grid_data[g.id][fname].shape)
                         data_convert = self.grid_data[g.id][fname][:, :, :]
                     elif field_list[fname]["field_define_type"] == "face-centered":
-                        # TODO: This function is not quite correct, if size of patch is not square.
                         # convert to cell-centered
                         data_temp = self.grid_data[g.id][fname]
-                        axis = np.argmax(data_temp.shape)
+                        grid_dim = self.hierarchy["grid_dimensions"][g.id]
+                        axis = np.argwhere(grid_dim != data_temp.shape)
+                        assert len(axis) == 1, \
+                            "Field [ %s ] is not a face-centered data, " \
+                            "grid_dimensions = %s, field data dimensions = %s" % (fname, grid_dim, (data_temp.shape, ))
+                        assert data_temp.shape[axis[0, 0]] - 1 == grid_dim[axis[0, 0]], \
+                            "Field [ %s ] is not a face-centered data, " \
+                            "grid_dimensions = %s, field data dimensions = %s" % (fname, grid_dim, (data_temp.shape, ))
                         if axis == 0:
-                            data_convert = 0.5 * (data_temp[:-1,:,:] + data_temp[1:,:,:])
+                            data_convert = 0.5 * (data_temp[:-1, :, :] + data_temp[1:, :, :])
                         if axis == 1:
-                            data_convert = 0.5 * (data_temp[:,:-1,:] + data_temp[:,1:,:])
+                            data_convert = 0.5 * (data_temp[:, :-1, :] + data_temp[:, 1:, :])
                         if axis == 2:
-                            data_convert = 0.5 * (data_temp[:,:,:-1] + data_temp[:,:,1:])
+                            data_convert = 0.5 * (data_temp[:, :, :-1] + data_temp[:, :, 1:])
                     elif field_list[fname]["field_define_type"] == "derived_func":
                         data_convert = self.libyt.derived_func(g.id, fname)
                     else:
@@ -224,13 +217,12 @@ class IOHandlerlibyt(BaseIOHandler):
                                          (field_list[fname]["field_define_type"]))
 
                     # Swap axes or not
-                    if field_list[fname]["swap_axes"] == True:
-                        data_view = data_convert.swapaxes(0,2)
+                    if field_list[fname]["swap_axes"] is True:
+                        data_view = data_convert.swapaxes(0, 2)
 
-                    offset   += g.select(selector, data_view, rv[field], offset)
-        assert(offset == fsize)
+                    offset += g.select(selector, data_view, rv[field], offset)
+        assert (offset == fsize)
 
         mylog.debug("###### (class IOHandlerlibyt, def _read_fluid_selection)")
 
         return rv
-
