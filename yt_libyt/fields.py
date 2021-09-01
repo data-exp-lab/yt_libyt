@@ -17,8 +17,8 @@ from yt.fields.field_info_container import FieldInfoContainer
 
 
 # this is the FieldInfo subclass adopted when libyt fails to find a matched code frontend
+# For now, we assume that users already have their own frontends. So this class shouldn't be called.
 class libytFieldInfo(FieldInfoContainer):
-    # TODO[Polish]: Should append fields through libyt C-Library
     known_other_fields = ()
     known_particle_fields = ()
 

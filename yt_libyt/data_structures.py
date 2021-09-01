@@ -36,12 +36,9 @@ class libytGrid(AMRGridPatch):
     def __init__(self, id, index, level):
         AMRGridPatch.__init__(self, id, filename=None, index=index)
 
-        # TODO:
-        # Might be redundant by setting these two, 
-        # should revisit when we consider load balance.
-        # 
-        # MPI_rank : Refers to grid is currently belongs to such MPI rank.
-        # filename : Refers to grid originally belongs to which MPI rank, see line 125.
+        # Might be redundant by setting these two, as they refer to the same thing.
+        # MPI_rank : Refers to grid is currently belongs to which MPI rank.
+        # filename : Refers to grid is currently belongs to which MPI rank. See line 125.
         self.MPI_rank = None
         self.Parent = None
         self.Children = []
@@ -79,7 +76,6 @@ class libytHierarchy(GridIndex):
             self.field_list = [(self.dataset._code_frontend, v) for v in self.libyt.grid_data[gid].keys()]
         except:
             mylog.debug("No field.")
-
 
         # appending particle fields
         try:
@@ -127,16 +123,9 @@ class libytHierarchy(GridIndex):
         self.grids = np.empty(self.num_grids, dtype='object')
         for i in range(self.num_grids):
             self.grids[i] = self.grid(i, self, self.grid_levels.flat[i])
-            self.grids[i].MPI_rank = self.proc_num[i,0]
+            self.grids[i].MPI_rank = self.proc_num[i, 0]
             self.grids[i].filename = "MPI_Rank_%07i" % (self.proc_num[i,0])
 
-        # TODO: particles
-        # calculate the starting particle indices for each grid (starting from 0)
-        # --> note that the last element must store the total number of particles
-        #    (see _read_particle_coords and _read_particle_fields in io.py)
-        # self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
-        # np.add.accumulate(self.grid_particle_count.squeeze(), out=self._particle_indices[1:])
-        # 
         mylog.debug("######")
 
     def _populate_grid_objects(self):
@@ -206,7 +195,7 @@ class libytDataset(Dataset):
     _field_info_class = libytFieldInfo
     # _field_info_base_class = object
     _dataset_type = 'libyt'  # must set here since __init__() does not know dataset_type when calling it
-    _debug = False  # TODO: debug mode for libyt (not supported yet), some checks are in libyt C-library. Cannot open yet. Future use.
+    _debug = False  # debug mode for libyt (not supported yet), some checks are in libyt C-library. Cannot open yet. Future use.
     libyt = None
 
     def __init__(self,
@@ -324,7 +313,6 @@ class libytDataset(Dataset):
         # user-specific parameters
         self.parameters.update(self.libyt.param_user)
 
-        # TODO: Check the yt_field field_list
         mylog.debug("field_list = %s", self.libyt.param_yt['field_list'])
 
         try:
