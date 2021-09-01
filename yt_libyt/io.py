@@ -106,41 +106,68 @@ class IOHandlerlibyt(BaseIOHandler):
                             yield (ptype, field), data[mask]
 
     def _read_chunk_data(self, chunk, fields):
-        pass
-        # TODO: Check this
-#       rv = {}
-#       if len(chunk.objs) == 0: return rv
+        # TODO: The suite hasn't been tested yet.
+        #       Although it's be use for caching, I wonder do libyt need this.
+        #       Since we don't need to load data from file.
+        rv = {}
+        if len(chunk.objs) == 0:
+            return rv
+        for g in chunk.objs:
+            rv[g.id] = {}
 
-#       for g in chunk.objs: rv[g.id] = {}
+        # Split into particles and non-particles
+        fluid_fields, particle_fields = [], []
+        for ftype, fname in fields:
+            if ftype in self.ds.particle_types:
+                particle_fields.append((ftype, fname))
+            else:
+                fluid_fields.append((ftype, fname))
 
-#       # Split into particles and non-particles
-#       fluid_fields, particle_fields = [], []
-#       for ftype, fname in fields:
-#           if ftype in self.ds.particle_types:
-#               particle_fields.append( (ftype, fname) )
-#           else:
-#               fluid_fields.append( (ftype, fname) )
+        # Read particle data
+        if len(particle_fields) > 0:
+            selector = AlwaysSelector(self.ds)
+            rv.update(self._read_particle_selection([chunk], selector, particle_fields))
 
-#       # particles
-#       if len(particle_fields) > 0:
-#           selector = AlwaysSelector(self.ds)
-#           rv.update( self._read_particle_selection(
-#               [chunk], selector, particle_fields) )
+        # If no more fluid fields to read, return rv. Or else, read fluid fields
+        if len(fluid_fields) == 0:
+            return rv
+        field_list = self.param_yt["field_list"]
+        for field in fluid_fields:
+            ftype, fname = field
+            for g in chunk.objs:
+                if field_list[fname]["field_define_type"] == "cell-centered":
+                    data_convert = self.grid_data[g.id][fname][:, :, :]
+                elif field_list[fname]["field_define_type"] == "face-centered":
+                    # Convert face-centered to cell-centered
+                    data_temp = self.grid_data[g.id][fname]
+                    grid_dim = self.hierarchy["grid_dimensions"][g.id]
+                    axis = np.argwhere(grid_dim != data_temp.shape)
+                    assert len(axis) == 1, \
+                        "Field [ %s ] is not a face-centered data, " \
+                        "grid_dimensions = %s, field data dimensions = %s" % (fname, grid_dim, (data_temp.shape,))
+                    assert data_temp.shape[axis[0, 0]] - 1 == grid_dim[axis[0, 0]], \
+                        "Field [ %s ] is not a face-centered data, " \
+                        "grid_dimensions = %s, field data dimensions = %s" % (fname, grid_dim, (data_temp.shape,))
+                    if axis == 0:
+                        data_convert = 0.5 * (data_temp[:-1, :, :] + data_temp[1:, :, :])
+                    if axis == 1:
+                        data_convert = 0.5 * (data_temp[:, :-1, :] + data_temp[:, 1:, :])
+                    if axis == 2:
+                        data_convert = 0.5 * (data_temp[:, :, :-1] + data_temp[:, :, 1:])
+                elif field_list[fname]["field_define_type"] == "derived_func":
+                    data_convert = self.libyt.derived_func(g.id, fname)
+                else:
+                    # Since we only supports "cell-centered", "face-centered", "derived_func" tags for now
+                    # Raise an error if enter this block.
+                    raise ValueError("libyt does not have field_define_type [ %s ]" %
+                                     (field_list[fname]["field_define_type"]))
 
-#       # fluid
-#       if len(fluid_fields) == 0: return rv
+                # Swap axes or not
+                if field_list[fname]["swap_axes"] is True:
+                    data_view = data_convert.swapaxes(0, 2)
 
-#       for field in fluid_fields:
-#           ds = self._group_grid[ field[1] ]
-
-#           for gs in grid_sequences(chunk.objs):
-#               start = gs[ 0].id
-#               end   = gs[-1].id + 1
-#               data  = ds[start:end,:,:,:].transpose()
-#               for i, g in enumerate(gs):
-#                   rv[g.id][field] = np.asarray( data[...,i], dtype=self._field_dtype )
-#       return rv
-
+                rv[g.id][field] = data_view
+        return rv
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
 
