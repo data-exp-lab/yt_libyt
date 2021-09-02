@@ -258,7 +258,9 @@ class libytDataset(Dataset):
         self.domain_left_edge = np.asarray(param_yt['domain_left_edge'])
         self.domain_right_edge = np.asarray(param_yt['domain_right_edge'])
         self.domain_dimensions = np.asarray(param_yt['domain_dimensions'])
-        self.periodicity = np.asarray(param_yt['periodicity'])
+        self._periodicity = (bool(param_yt['periodicity'][0] == 1),
+                             bool(param_yt['periodicity'][1] == 1),
+                             bool(param_yt['periodicity'][2] == 1))
 
         # Load code specific parameters
         for key in self.libyt.param_user.keys():
