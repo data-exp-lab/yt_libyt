@@ -15,9 +15,8 @@ libyt-specific IO functions
 
 import numpy as np
 
-from yt.utilities.io_handler import \
-    BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.io_handler import BaseIOHandler
+from yt.funcs import mylog
 from yt.geometry.selection_routines import AlwaysSelector
 
 
@@ -134,12 +133,6 @@ class IOHandlerlibyt(BaseIOHandler):
         return rv
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-
-        mylog.debug("#FLAG#")
-        mylog.debug("yt/frontends/libyt/io.py (class IOHandlerlibyt, def _read_fluid_selection)")
-        mylog.debug("fields = %s", fields)
-
-        mylog.debug("self.param_yt['field_list'] = %s", self.param_yt["field_list"])
         rv = {}
         chunks = list(chunks)
 
@@ -150,8 +143,6 @@ class IOHandlerlibyt(BaseIOHandler):
             g = chunks[0].objs[0]
             for ftype, fname in fields:
                 rv[(ftype, fname)] = self._get_data_from_libyt(g, fname)
-
-            mylog.debug("###### (class IOHandlerlibyt, def _read_fluid_selection)")
             return rv
 
         if size is None:
@@ -167,15 +158,11 @@ class IOHandlerlibyt(BaseIOHandler):
         for field in fields:
             offset = 0
             ftype, fname = field
-            mylog.debug("ftype, fname = %s", field)
             for chunk in chunks:
                 for g in chunk.objs:
                     data_view = self._get_data_from_libyt(g, fname)
                     offset += g.select(selector, data_view, rv[field], offset)
             assert (offset == size)
-
-        mylog.debug("###### (class IOHandlerlibyt, def _read_fluid_selection)")
-
         return rv
 
     def _get_data_from_libyt(self, grid, fname):
@@ -183,7 +170,6 @@ class IOHandlerlibyt(BaseIOHandler):
         #       getting None object, which means current rank does not have the grid.
         field_list = self.param_yt["field_list"]
         if field_list[fname]["field_define_type"] == "cell-centered":
-            mylog.debug("self.grid_data[g.id][fname].shape = %s", self.grid_data[grid.id][fname].shape)
             data_convert = self.grid_data[grid.id][fname][:, :, :]
         elif field_list[fname]["field_define_type"] == "face-centered":
             # convert to cell-centered

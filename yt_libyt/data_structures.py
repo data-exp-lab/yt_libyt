@@ -38,7 +38,7 @@ class libytGrid(AMRGridPatch):
 
         # Might be redundant by setting these two, as they refer to the same thing.
         # MPI_rank : Refers to grid is currently belongs to which MPI rank.
-        # filename : Refers to grid is currently belongs to which MPI rank. See line 125.
+        # filename : Refers to grid is currently belongs to which MPI rank. See line 101.
         self.MPI_rank = None
         self.Parent = None
         self.Children = []
@@ -51,9 +51,7 @@ class libytGrid(AMRGridPatch):
 class libytHierarchy(GridIndex):
     grid = libytGrid
     libyt = None
-
-    ### NOT SURE ABOUT THIS OPTION
-    #   _preload_implemented = True
+    # _preload_implemented = True # Not sure about this option
 
     def __init__(self, ds, dataset_type='libyt'):
         self.dataset_type = dataset_type
@@ -65,19 +63,12 @@ class libytHierarchy(GridIndex):
         GridIndex.__init__(self, ds, dataset_type)
 
     def _detect_output_fields(self):
-        mylog.debug("#FLAG#")
-        mylog.debug("yt/frontends/libyt/data_structures.py (class libytHierarchy, def _detect_output_fields())")
-
         try:
-            # Just want to make sure that num_field > 0, which is field_list exist.
-            temp = self.libyt.param_yt['field_list']
-            # assuming all grids have the same fields
-            gid = 0
-            self.field_list = [(self.dataset._code_frontend, v) for v in self.libyt.grid_data[gid].keys()]
+            field_list = self.libyt.param_yt['field_list']
+            self.field_list = [(self.dataset._code_frontend, v) for v in field_list.keys()]
         except:
             mylog.debug("No field.")
 
-        # appending particle fields
         try:
             particle_list = self.libyt.param_yt['particle_list']
             for ptype in particle_list.keys():
@@ -86,17 +77,10 @@ class libytHierarchy(GridIndex):
         except:
             mylog.debug("No particle.")
 
-        mylog.debug("self.field_list = %s", self.field_list)
-
-        mylog.debug("###### (class libytHierarchy, def _detect_output_fields())")
-
     def _count_grids(self):
         self.num_grids = self.libyt.param_yt['num_grids']
 
     def _parse_index(self):
-
-        mylog.debug("#FLAG#")
-        mylog.debug("yt/frontends/libyt/data_structures.py (class libytHierarchy, def _parse_index)")
         # hierarchy information of all grids
         hierarchy = self.libyt.hierarchy
 
@@ -112,21 +96,12 @@ class libytHierarchy(GridIndex):
         # Indicates which OpenMPI rank it belongs to.
         self.proc_num = hierarchy['proc_num'].copy()
 
-        mylog.debug("grid_left_edge = %s", self.grid_left_edge)
-        mylog.debug("grid_right_edge = %s", self.grid_right_edge)
-        mylog.debug("grid_dimensions = %s", self.grid_dimensions)
-        mylog.debug("grid_levels = %s", self.grid_levels)
-        mylog.debug("grid_particle_count = %s", self.grid_particle_count)
-        mylog.debug("proc_num = %s", self.proc_num)
-
         # allocate all grid objects
         self.grids = np.empty(self.num_grids, dtype='object')
         for i in range(self.num_grids):
             self.grids[i] = self.grid(i, self, self.grid_levels.flat[i])
             self.grids[i].MPI_rank = self.proc_num[i, 0]
             self.grids[i].filename = "MPI_Rank_%07i" % (self.proc_num[i,0])
-
-        mylog.debug("######")
 
     def _populate_grid_objects(self):
         # must flat it since 'grid_parent_id' has the dimension [num_grids][1]
@@ -147,46 +122,17 @@ class libytHierarchy(GridIndex):
             grid._setup_dx()
 
     def _chunk_io(self, dobj, cache=True, local_only=False):
-
-        mylog.debug("#FLAG#")
-        mylog.debug("yt/frontends/libyt/data_structures.py (class libytHierarchy, def _chunk_io())")
-
         gfiles = defaultdict(list)
-
-        mylog.debug("dobj._current_chunk = %s", dobj._current_chunk)
-        mylog.debug("dobj._chunk_info = %s", dobj._chunk_info)
-        mylog.debug("dobj type = %s", type(dobj))
-        mylog.debug("dobj._current_chunk type = %s", type(dobj._current_chunk))
-        mylog.debug("dobj._chunk_info type = %s", type(dobj._chunk_info))
-
-        mylog.debug("dobj._current_chunk attributes: ")
-        mylog.debug("%s", inspect.getmembers(dobj._current_chunk, lambda a: not (inspect.isroutine(a))))
-
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-
-        mylog.debug("gobjs = %s", gobjs)
-        mylog.debug("gobjs type = %s", type(gobjs))
-
         for g in gobjs:
-            mylog.debug("g.filename = %s", g.filename)
             gfiles[g.filename].append(g)
-
-        mylog.debug("gfiles = %s", gfiles)
-        mylog.debug("local_only = %s", local_only)
 
         for fn in sorted(gfiles):
             if local_only:
-
-                for g in gfiles[fn]:
-                    mylog.debug("g = %s, g.MPI_rank = %s, self.comm.rank = %s" % (g, g.MPI_rank, self.comm.rank))
-
                 gobjs = [g for g in gfiles[fn] if g.MPI_rank == self.comm.rank]
                 gfiles[fn] = gobjs
             gs = gfiles[fn]
             count = self._count_selection(dobj, gs)
-
-            mylog.debug("######(class libytHierarchy, def _chunk_io())")
-
             yield YTDataChunk(dobj, "io", gs, count, cache=cache)
 
 
@@ -203,7 +149,8 @@ class libytDataset(Dataset):
                  unit_system="cgs"):
 
         # nothing to do if initialization has been done
-        if self.libyt is not None: return
+        if self.libyt is not None:
+            return
 
         # load the libyt module
         self.libyt = self._obtain_libyt()
@@ -212,12 +159,6 @@ class libytDataset(Dataset):
         # and set fluid type and fields accordingly
         self._code_frontend = self.libyt.param_yt['frontend'].lower()
         for name, cls in output_type_registry.items():
-
-            mylog.debug("#FLAG#")
-            mylog.debug("yt/frontends/libyt/data_structures.py (class libytDataset, def __init__)")
-            mylog.debug("name = %s", name)
-            mylog.debug("cls = %s", cls)
-
             if self._code_frontend == name[0:-len('Dataset')].lower():
                 self._code_dataset = name
                 self._field_info_class = cls._field_info_class
@@ -283,18 +224,6 @@ class libytDataset(Dataset):
         mylog.info('libyt: FieldInfo subclass = %s' % self._field_info_class)
         mylog.info('libyt: fluid type         = %s' % self._code_frontend)
 
-        for i in range(len(cls._field_info_class.known_other_fields)):
-            mylog.debug("known_other_fields = %s, %s, %s, %s" % (cls._field_info_class.known_other_fields[i][0],
-                                                                 cls._field_info_class.known_other_fields[i][1][0],
-                                                                 cls._field_info_class.known_other_fields[i][1][1],
-                                                                 cls._field_info_class.known_other_fields[i][1][2]))
-
-        for i in range(len(cls._field_info_class.known_particle_fields)):
-            mylog.debug("known_particle_fields = %s, %s, %s, %s" % (cls._field_info_class.known_particle_fields[i][0],
-                                                                    cls._field_info_class.known_particle_fields[i][1][0],
-                                                                    cls._field_info_class.known_particle_fields[i][1][1],
-                                                                    cls._field_info_class.known_particle_fields[i][1][2]))
-
         Dataset.__init__(self, "libytHasNoParameterFile", self._dataset_type,
                          units_override=units_override,
                          unit_system=unit_system)
@@ -312,13 +241,6 @@ class libytDataset(Dataset):
 
         # user-specific parameters
         self.parameters.update(self.libyt.param_user)
-
-        mylog.debug("field_list = %s", self.libyt.param_yt['field_list'])
-
-        try:
-            mylog.debug("particle_list = %s", self.libyt.param_yt['particle_list'])
-        except:
-            mylog.debug("No particle_list.")
 
         # yt-specific parameters
         param_yt = self.libyt.param_yt
@@ -341,14 +263,15 @@ class libytDataset(Dataset):
         # Load code specific parameters
         for key in self.libyt.param_user.keys():
             if hasattr(self, key):
-                mylog.debug("Overwrite existing attribute self.%s = %s in class libytDataset", key, getattr(self, key))
+                mylog.info("Overwrite existing attribute self.%s = %s in class libytDataset", key, getattr(self, key))
             try:
                 setattr(self, key, self.libyt.param_user[key])
-                mylog.debug("Set attribute self.%s = %s in class libytDataset.", key, self.libyt.param_user[key])
+                mylog.info("Set attribute self.%s = %s in class libytDataset.", key, self.libyt.param_user[key])
             except:
-                mylog.debug("Cannot add new attribute self.%s = %s", key, self.libyt.param_user[key])
+                mylog.warning("Cannot add new attribute self.%s = %s", key, self.libyt.param_user[key])
 
-    def _obtain_libyt(self):
+    @staticmethod
+    def _obtain_libyt():
         import libyt
         return libyt
 
