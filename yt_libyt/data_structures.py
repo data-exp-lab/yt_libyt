@@ -160,7 +160,6 @@ class libytDataset(Dataset):
         self._code_frontend = self.libyt.param_yt['frontend'].lower()
         for name, cls in output_type_registry.items():
             if self._code_frontend == name[0:-len('Dataset')].lower():
-                self._code_dataset = name
                 self._field_info_class = cls._field_info_class
                 self.fluid_types += (self._code_frontend,)
 
@@ -220,7 +219,7 @@ class libytDataset(Dataset):
             raise NotImplementedError("libyt set frontend = %s, cannot find the code frontend [%sDataset] in yt." %
                                       (self.libyt.param_yt['frontend'], self.libyt.param_yt['frontend'].upper()))
 
-        mylog.info('libyt: code dataset       = %s' % self._code_dataset)
+        mylog.info('libyt: code dataset       = %s' % "libytDataset")
         mylog.info('libyt: FieldInfo subclass = %s' % self._field_info_class)
         mylog.info('libyt: fluid type         = %s' % self._code_frontend)
 
