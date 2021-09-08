@@ -171,10 +171,11 @@ class IOHandlerlibyt(BaseIOHandler):
         field_list = self.param_yt["field_list"]
         if field_list[fname]["field_define_type"] == "cell-centered":
             data_convert = self.grid_data[grid.id][fname]
-            assert data_convert is not None, "This MPI rank does not has grid id [%s]" % grid.id
+            assert data_convert is not None, "This MPI rank does not have grid id [%s]." % grid.id
         elif field_list[fname]["field_define_type"] == "face-centered":
             # convert to cell-centered
             data_temp = self.grid_data[grid.id][fname]
+            assert data_temp is not None, "This MPI rank does not have grid id [%s]." % grid.id
             grid_dim = self.hierarchy["grid_dimensions"][grid.id]
             if field_list[fname]["swap_axes"] is True:
                 grid_dim = np.flip(grid_dim)
