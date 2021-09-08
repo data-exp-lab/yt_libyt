@@ -170,7 +170,8 @@ class IOHandlerlibyt(BaseIOHandler):
         #       getting None object, which means current rank does not have the grid.
         field_list = self.param_yt["field_list"]
         if field_list[fname]["field_define_type"] == "cell-centered":
-            data_convert = self.grid_data[grid.id][fname][:, :, :]
+            data_convert = self.grid_data[grid.id][fname]
+            assert data_convert is not None, "This MPI rank does not has grid id [%s]" % grid.id
         elif field_list[fname]["field_define_type"] == "face-centered":
             # convert to cell-centered
             data_temp = self.grid_data[grid.id][fname]
