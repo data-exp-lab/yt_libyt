@@ -197,14 +197,14 @@ class IOHandlerlibyt(BaseIOHandler):
         comm.Bcast(recvbuf, root=0)
         mylog.debug("recvbuf = %s" % recvbuf)
 
-        to_prepare = []
+        # Get grid id that this rank needs to prepare.
         proc_num = self.hierarchy["proc_num"][:, 0]
-        np.where(proc_num[recvbuf] == myrank)
-        for i in range(len(recvbuf)):
-            # This rank has the grid
-            if self.hierarchy["proc_num"][recvbuf[i], 0] == myrank:
-                to_prepare.append(recvbuf[i])
+        index = np.argwhere(proc_num[recvbuf] == myrank)
+        to_prepare = list(np.unique(recvbuf[index]))
 
+        mylog.debug("to_prepare = %s" % to_prepare)
+        mylog.debug("nonlocal_grid_id = %s" % nonlocal_grid_id)
+        mylog.debug("nonlocal_grid_rank = %s" % nonlocal_grid_rank)
 
         # Get non-local grid
 
