@@ -41,6 +41,9 @@ class IOHandlerlibyt(BaseIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
+        # TODO: Support get non-local grid
+        #  (1) Collect all the particle attribute in a dictionary, since we need to make
+        #      all the rank in the same RMA epoch.
 
         for chunk in chunks:
             for g in chunk.objs:
@@ -66,6 +69,9 @@ class IOHandlerlibyt(BaseIOHandler):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
+        # TODO: Support get non-local grid
+        #  (1) Collect all the particle attribute in a dictionary, since we need to make
+        #      all the rank in the same RMA epoch.
         for chunk in chunks:
             for g in chunk.objs:
                 # if grid_particle_count, which is sum of all particle number
@@ -102,7 +108,8 @@ class IOHandlerlibyt(BaseIOHandler):
     def _read_chunk_data(self, chunk, fields):
         # TODO: The suite hasn't been tested yet.
         #       Although it's be use for caching, I wonder do libyt need this.
-        #       Since we don't need to load data from file.
+        #       Since we don't need to load data from file. Although we do need
+        #       to get data from remote rank.
         rv = {}
         if len(chunk.objs) == 0:
             return rv
@@ -155,6 +162,53 @@ class IOHandlerlibyt(BaseIOHandler):
         mylog.debug("Reading %s cells of %s fields in %s grids",
                     size, [f2 for f1, f2 in fields], ng)
 
+        # TODO: Support get non-local grid,
+        #  (1) Maybe I should make _get_data_from_libyt method return in a group of needed grid, not just a single grid.
+        #  (2) Inside _get_data_from_libyt, there should be two methods one returns local grids, the other returns
+        #      non-local grids.
+
+        # Distinguish local and non-local grid, and count the number of non-local grid.
+        num_nonlocal_grid = 0
+        myrank = self._get_my_rank()
+        local_grid_id = []
+        nonlocal_grid_id = []
+        nonlocal_grid_rank = []
+        for chunk in chunks:
+            for g in chunk.objs:
+                if g.MPI_rank != myrank:
+                    nonlocal_grid_id.append(g.id)
+                    nonlocal_grid_rank.append(self.hierarchy["proc_num"][g.id, 0])
+                    num_nonlocal_grid += 1
+                else:
+                    local_grid_id.append(g.id)
+
+        mylog.debug("nonlocal grid = %s" % nonlocal_grid_id)
+        mylog.debug("local grid = %s" % local_grid_id)
+
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        sendcounts = comm.gather(num_nonlocal_grid, root=0)
+        sendcounts = comm.bcast(sendcounts, root=0)
+        mylog.debug("sendcounts = %s" % sendcounts)
+
+        sendbuf = np.asarray(nonlocal_grid_id)
+        recvbuf = np.empty(sum(sendcounts), dtype=int)
+        comm.Gatherv(sendbuf=sendbuf, recvbuf=(recvbuf, sendcounts), root=0)
+        comm.Bcast(recvbuf, root=0)
+        mylog.debug("recvbuf = %s" % recvbuf)
+
+        to_prepare = []
+        proc_num = self.hierarchy["proc_num"][:, 0]
+        np.where(proc_num[recvbuf] == myrank)
+        for i in range(len(recvbuf)):
+            # This rank has the grid
+            if self.hierarchy["proc_num"][recvbuf[i], 0] == myrank:
+                to_prepare.append(recvbuf[i])
+
+
+        # Get non-local grid
+
+        # Get local grid
         for field in fields:
             offset = 0
             ftype, fname = field
@@ -165,9 +219,14 @@ class IOHandlerlibyt(BaseIOHandler):
             assert (offset == size)
         return rv
 
+    @staticmethod
+    def _get_my_rank():
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        return comm.Get_rank()
+
     def _get_data_from_libyt(self, grid, fname):
-        # TODO: self.grid_data has all the g.id as keys, so we probably need additional check to prevent
-        #       getting None object, which means current rank does not have the grid.
+        # This method is to get the local grid data.
         field_list = self.param_yt["field_list"]
         if field_list[fname]["field_define_type"] == "cell-centered":
             data_convert = self.grid_data[grid.id][fname]
