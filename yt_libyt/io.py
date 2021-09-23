@@ -136,7 +136,7 @@ class IOHandlerlibyt(BaseIOHandler):
         for field in fluid_fields:
             ftype, fname = field
             for g in chunk.objs:
-                rv[g.id][field] = self._get_data_from_libyt(g, fname)
+                rv[g.id][field] = self._get_field_from_libyt(g, fname)
         return rv
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
@@ -149,7 +149,7 @@ class IOHandlerlibyt(BaseIOHandler):
                                    "chunk to be read not equal to 1.")
             g = chunks[0].objs[0]
             for ftype, fname in fields:
-                rv[(ftype, fname)] = self._get_data_from_libyt(g, fname)
+                rv[(ftype, fname)] = self._get_field_from_libyt(g, fname)
             return rv
 
         if size is None:
@@ -168,25 +168,15 @@ class IOHandlerlibyt(BaseIOHandler):
         #      non-local grids.
 
         # Distinguish local and non-local grid, and count the number of non-local grid.
-        num_nonlocal_grid = 0
-        myrank = self._get_my_rank()
-        local_grid_id = []
-        nonlocal_grid_id = []
-        nonlocal_grid_rank = []
-        for chunk in chunks:
-            for g in chunk.objs:
-                if g.MPI_rank != myrank:
-                    nonlocal_grid_id.append(g.id)
-                    nonlocal_grid_rank.append(self.hierarchy["proc_num"][g.id, 0])
-                    num_nonlocal_grid += 1
-                else:
-                    local_grid_id.append(g.id)
+        local_grid_id, nonlocal_grid_id, nonlocal_grid_rank = self._distinguish_nonlocal_grids(chunks)
+        num_nonlocal_grid = len(nonlocal_grid_id)
 
         mylog.debug("nonlocal grid = %s" % nonlocal_grid_id)
         mylog.debug("local grid = %s" % local_grid_id)
 
         from mpi4py import MPI
         comm = MPI.COMM_WORLD
+        myrank = comm.Get_rank()
         sendcounts = comm.gather(num_nonlocal_grid, root=0)
         sendcounts = comm.bcast(sendcounts, root=0)
         mylog.debug("sendcounts = %s" % sendcounts)
@@ -214,18 +204,43 @@ class IOHandlerlibyt(BaseIOHandler):
             ftype, fname = field
             for chunk in chunks:
                 for g in chunk.objs:
-                    data_view = self._get_data_from_libyt(g, fname)
+                    data_view = self._get_field_from_libyt(g, fname)
                     offset += g.select(selector, data_view, rv[field], offset)
             assert (offset == size)
         return rv
 
     @staticmethod
-    def _get_my_rank():
+    def _distinguish_nonlocal_grids(chunks):
+        # Split local and non-local grids, and return grids as their ids.
+        # Return local, non-local grids, which rank to get non-local grids
         from mpi4py import MPI
         comm = MPI.COMM_WORLD
-        return comm.Get_rank()
 
-    def _get_data_from_libyt(self, grid, fname):
+        myrank = comm.Get_rank()
+        local_id = []
+        nonlocal_id = []
+        nonlocal_rank = []
+
+        for chunk in chunks:
+            for g in chunk.objs:
+                if g.MPI_rank != myrank:
+                    nonlocal_id.append(g.id)
+                    nonlocal_rank.append(g.MPI_rank)
+                else:
+                    local_id.append(g.id)
+
+        return local_id, nonlocal_id, nonlocal_rank
+
+    def _get_remote_field_from_libyt(self, grids, fields):
+        # Get these non-local grids ( a list of grid ids ) field data fields ( a list of fields ).
+        # Till this step, grids only contains non-local ids.
+        pass
+
+    def _get_remote_particle_from_libyt(self, grids, ptf):
+        # Counter-part of _get_remote_field_from_libyt for supporting particles.
+        pass
+
+    def _get_field_from_libyt(self, grid, fname):
         # This method is to get the local grid data.
         field_list = self.param_yt["field_list"]
         if field_list[fname]["field_define_type"] == "cell-centered":
