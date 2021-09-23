@@ -162,41 +162,17 @@ class IOHandlerlibyt(BaseIOHandler):
         mylog.debug("Reading %s cells of %s fields in %s grids",
                     size, [f2 for f1, f2 in fields], ng)
 
+        for ftype, fname in fields:
+            mylog.debug("ftype = %s" % ftype)
+            mylog.debug("fname = %s" % fname)
+
         # TODO: Support get non-local grid,
         #  (1) Maybe I should make _get_data_from_libyt method return in a group of needed grid, not just a single grid.
         #  (2) Inside _get_data_from_libyt, there should be two methods one returns local grids, the other returns
         #      non-local grids.
 
-        # Distinguish local and non-local grid, and count the number of non-local grid.
-        local_grid_id, nonlocal_grid_id, nonlocal_grid_rank = self._distinguish_nonlocal_grids(chunks)
-        num_nonlocal_grid = len(nonlocal_grid_id)
-
-        mylog.debug("nonlocal grid = %s" % nonlocal_grid_id)
-        mylog.debug("local grid = %s" % local_grid_id)
-
-        from mpi4py import MPI
-        comm = MPI.COMM_WORLD
-        myrank = comm.Get_rank()
-        sendcounts = comm.gather(num_nonlocal_grid, root=0)
-        sendcounts = comm.bcast(sendcounts, root=0)
-        mylog.debug("sendcounts = %s" % sendcounts)
-
-        sendbuf = np.asarray(nonlocal_grid_id)
-        recvbuf = np.empty(sum(sendcounts), dtype=int)
-        comm.Gatherv(sendbuf=sendbuf, recvbuf=(recvbuf, sendcounts), root=0)
-        comm.Bcast(recvbuf, root=0)
-        mylog.debug("recvbuf = %s" % recvbuf)
-
-        # Get grid id that this rank needs to prepare.
-        proc_num = self.hierarchy["proc_num"][:, 0]
-        index = np.argwhere(proc_num[recvbuf] == myrank)
-        to_prepare = list(np.unique(recvbuf[index]))
-
-        mylog.debug("to_prepare = %s" % to_prepare)
-        mylog.debug("nonlocal_grid_id = %s" % nonlocal_grid_id)
-        mylog.debug("nonlocal_grid_rank = %s" % nonlocal_grid_rank)
-
-        # Get non-local grid
+        # Distinguish local and non-local grid
+        local_id, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
 
         # Get local grid
         for field in fields:
@@ -209,14 +185,12 @@ class IOHandlerlibyt(BaseIOHandler):
             assert (offset == size)
         return rv
 
-    @staticmethod
-    def _distinguish_nonlocal_grids(chunks):
-        # Split local and non-local grids, and return grids as their ids.
-        # Return local, non-local grids, which rank to get non-local grids
+    def _distinguish_nonlocal_grids(self, chunks):
+        # Split local and non-local grids.
         from mpi4py import MPI
         comm = MPI.COMM_WORLD
-
         myrank = comm.Get_rank()
+
         local_id = []
         nonlocal_id = []
         nonlocal_rank = []
@@ -228,12 +202,35 @@ class IOHandlerlibyt(BaseIOHandler):
                     nonlocal_rank.append(g.MPI_rank)
                 else:
                     local_id.append(g.id)
+        num_nonlocal_grids = len(nonlocal_id)
 
-        return local_id, nonlocal_id, nonlocal_rank
+        mylog.debug("local grid = %s" % local_id)
+        mylog.debug("num nonlocal grid  = %s" % num_nonlocal_grids)
+        mylog.debug("nonlocal grid id   = %s" % nonlocal_id)
+        mylog.debug("nonlocal grid rank = %s" % nonlocal_rank)
+
+        # Gather all non-local grids in each rank.
+        sendcounts = comm.gather(num_nonlocal_grids, root=0)
+        sendcounts = comm.bcast(sendcounts, root=0)
+        sendbuf = np.asarray(nonlocal_id)
+        recvbuf = np.empty(sum(sendcounts), dtype=int)
+        comm.Gatherv(sendbuf=sendbuf, recvbuf=(recvbuf, sendcounts), root=0)
+        comm.Bcast(recvbuf, root=0)
+
+        mylog.debug("sendcounts = %s" % sendcounts)
+        mylog.debug("all non-local grids = %s" % recvbuf)
+
+        # Get grid id that this rank has to prepare.
+        proc_num = self.hierarchy["proc_num"][:, 0]
+        index = np.argwhere(proc_num[recvbuf] == myrank)
+        to_prepare = list(np.unique(recvbuf[index]))
+
+        mylog.debug("to_prepare = %s" % to_prepare)
+
+        return local_id, to_prepare, nonlocal_id, nonlocal_rank
 
     def _get_remote_field_from_libyt(self, grids, fields):
-        # Get these non-local grids ( a list of grid ids ) field data fields ( a list of fields ).
-        # Till this step, grids only contains non-local ids.
+        # Wrapper for the RMA operation at libyt C library code.
         pass
 
     def _get_remote_particle_from_libyt(self, grids, ptf):
