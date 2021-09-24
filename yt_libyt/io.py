@@ -162,17 +162,19 @@ class IOHandlerlibyt(BaseIOHandler):
         mylog.debug("Reading %s cells of %s fields in %s grids",
                     size, [f2 for f1, f2 in fields], ng)
 
+        fname_list = []
         for ftype, fname in fields:
+            fname_list.append(fname)
+
             mylog.debug("ftype = %s" % ftype)
             mylog.debug("fname = %s" % fname)
 
-        # TODO: Support get non-local grid,
-        #  (1) Maybe I should make _get_data_from_libyt method return in a group of needed grid, not just a single grid.
-        #  (2) Inside _get_data_from_libyt, there should be two methods one returns local grids, the other returns
-        #      non-local grids.
-
-        # Distinguish local and non-local grid
+        # Distinguish local and non-local grid, and what should this rank prepared.
         local_id, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
+
+        # Get nonlocal_data, libyt will perform RMA operation in this step.
+        # Every rank must call this libyt method.
+        nonlocal_data = self.libyt.get_field_remote(fname_list, to_prepare, nonlocal_id, nonlocal_rank)
 
         # Get local grid
         for field in fields:
