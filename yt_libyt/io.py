@@ -164,7 +164,7 @@ class IOHandlerlibyt(BaseIOHandler):
 
         fname_list = []
         for ftype, fname in fields:
-            fname_list.append(fname)
+            fname_list.append(fname.encode(encoding='UTF-8', errors='strict'))
 
             mylog.debug("ftype = %s" % ftype)
             mylog.debug("fname = %s" % fname)
@@ -174,18 +174,65 @@ class IOHandlerlibyt(BaseIOHandler):
 
         # Get nonlocal_data, libyt will perform RMA operation in this step.
         # Every rank must call this libyt method.
-        nonlocal_data = self.libyt.get_field_remote(fname_list, to_prepare, nonlocal_id, nonlocal_rank)
+        nonlocal_data = self.libyt.get_field_remote(fname_list, len(fname_list), to_prepare, len(to_prepare),
+                                                    nonlocal_id, len(nonlocal_id), nonlocal_rank, len(nonlocal_rank))
+
+        mylog.debug("nonlocal_data keys = %s", nonlocal_data.keys())
+        mylog.debug("nonlocal_data = %s", nonlocal_data)
+
 
         # Get local grid
+        field_list = self.param_yt["field_list"]
         for field in fields:
             offset = 0
             ftype, fname = field
             for chunk in chunks:
                 for g in chunk.objs:
-                    data_view = self._get_field_from_libyt(g, fname)
+                    if g.MPI_rank == IOHandlerlibyt._get_my_rank():
+                        data_view = self._get_field_from_libyt(g, fname)
+                    else:
+                        if field_list[fname]["field_define_type"] == "cell-centered":
+                            data_convert = nonlocal_data[g.id][fname]
+                        elif field_list[fname]["field_define_type"] == "face-centered":
+                            data_temp = nonlocal_data[g.id][fname]
+                            if field_list[fname]["swap_axes"] is True:
+                                grid_dim = np.flip(grid_dim)
+                            axis = np.argwhere(grid_dim != data_temp.shape)
+                            assert len(axis) == 1, \
+                                "Field [ %s ] is not a face-centered data, " \
+                                "grid_dimensions = %s, field data dimensions = %s, considering swap_axes" % (
+                                fname, grid_dim, (data_temp.shape,))
+                            assert data_temp.shape[axis[0, 0]] - 1 == grid_dim[axis[0, 0]], \
+                                "Field [ %s ] is not a face-centered data, " \
+                                "grid_dimensions = %s, field data dimensions = %s, considering swap_axes" % (
+                                fname, grid_dim, (data_temp.shape,))
+                            if axis == 0:
+                                data_convert = 0.5 * (data_temp[:-1, :, :] + data_temp[1:, :, :])
+                            elif axis == 1:
+                                data_convert = 0.5 * (data_temp[:, :-1, :] + data_temp[:, 1:, :])
+                            elif axis == 2:
+                                data_convert = 0.5 * (data_temp[:, :, :-1] + data_temp[:, :, 1:])
+                        elif field_list[fname]["field_define_type"] == "derived_func":
+                            data_convert = nonlocal_data[g.id][fname]
+                        else:
+                            # Since we only supports "cell-centered", "face-centered", "derived_func" tags for now
+                            # Raise an error if enter this block.
+                            raise ValueError("libyt does not have field_define_type [ %s ]" %
+                                             (field_list[fname]["field_define_type"]))
+                        # Swap axes or not.
+                        if field_list[fname]["swap_axes"] is True:
+                            data_view = data_convert.swapaxes(0, 2)
+                        else:
+                            data_view = data_convert
                     offset += g.select(selector, data_view, rv[field], offset)
             assert (offset == size)
         return rv
+
+    @staticmethod
+    def _get_my_rank():
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        return comm.Get_rank()
 
     def _distinguish_nonlocal_grids(self, chunks):
         # Split local and non-local grids.
