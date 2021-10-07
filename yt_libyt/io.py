@@ -195,6 +195,7 @@ class IOHandlerlibyt(BaseIOHandler):
                             data_convert = nonlocal_data[g.id][fname]
                         elif field_list[fname]["field_define_type"] == "face-centered":
                             data_temp = nonlocal_data[g.id][fname]
+                            grid_dim = self.hierarchy["grid_dimensions"][g.id]
                             if field_list[fname]["swap_axes"] is True:
                                 grid_dim = np.flip(grid_dim)
                             axis = np.argwhere(grid_dim != data_temp.shape)
