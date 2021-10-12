@@ -33,6 +33,7 @@ class IOHandlerlibyt(BaseIOHandler):
         self.param_yt     = libyt.param_yt
         self.hierarchy    = libyt.hierarchy
         self._field_dtype = "float64"
+        self.myrank       = IOHandlerlibyt._get_my_rank()
 
 ###     ghost_zones != 0 is not supported yet
 #       self.my_slice = (slice(ghost_zones,-ghost_zones),
@@ -136,6 +137,8 @@ class IOHandlerlibyt(BaseIOHandler):
         for field in fluid_fields:
             ftype, fname = field
             for g in chunk.objs:
+                # TODO: Support Nonlocal
+                mylog.debug("#FLAG1")
                 rv[g.id][field] = self._get_field_from_libyt(g, fname)
         return rv
 
@@ -147,9 +150,25 @@ class IOHandlerlibyt(BaseIOHandler):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError("class IOHandlerlibyt, def _read_fluid_selection, selector == GridSelector, "
                                    "chunk to be read not equal to 1.")
+
+
             g = chunks[0].objs[0]
+
+            # Get non-local grid
+            fname_list = []
             for ftype, fname in fields:
-                rv[(ftype, fname)] = self._get_field_from_libyt(g, fname)
+                fname_list.append(fname.encode(encoding='UTF-8', errors='strict'))
+            local_id, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
+            nonlocal_data = self.libyt.get_field_remote(fname_list, len(fname_list), to_prepare, len(to_prepare),
+                                                        nonlocal_id, len(nonlocal_id), nonlocal_rank,
+                                                        len(nonlocal_rank))
+
+            for ftype, fname in fields:
+                mylog.debug("#FLAG2")
+                if g.MPI_rank == self.myrank:
+                    rv[(ftype, fname)] = self._get_field_from_libyt(g, fname)
+                else:
+                    rv[(ftype, fname)] = nonlocal_data[g.id][fname]
             return rv
 
         if size is None:
@@ -188,7 +207,8 @@ class IOHandlerlibyt(BaseIOHandler):
             ftype, fname = field
             for chunk in chunks:
                 for g in chunk.objs:
-                    if g.MPI_rank == IOHandlerlibyt._get_my_rank():
+                    if g.MPI_rank == self.myrank:
+                        mylog.debug("#FLAG3")
                         data_view = self._get_field_from_libyt(g, fname)
                     else:
                         if field_list[fname]["field_define_type"] == "cell-centered":
@@ -239,7 +259,6 @@ class IOHandlerlibyt(BaseIOHandler):
         # Split local and non-local grids.
         from mpi4py import MPI
         comm = MPI.COMM_WORLD
-        myrank = comm.Get_rank()
 
         local_id = []
         nonlocal_id = []
@@ -247,7 +266,7 @@ class IOHandlerlibyt(BaseIOHandler):
 
         for chunk in chunks:
             for g in chunk.objs:
-                if g.MPI_rank != myrank:
+                if g.MPI_rank != self.myrank:
                     nonlocal_id.append(g.id)
                     nonlocal_rank.append(g.MPI_rank)
                 else:
@@ -272,7 +291,7 @@ class IOHandlerlibyt(BaseIOHandler):
 
         # Get grid id that this rank has to prepare.
         proc_num = self.hierarchy["proc_num"][:, 0]
-        index = np.argwhere(proc_num[recvbuf] == myrank)
+        index = np.argwhere(proc_num[recvbuf] == self.myrank)
         to_prepare = list(np.unique(recvbuf[index]))
 
         mylog.debug("to_prepare = %s" % to_prepare)
@@ -292,11 +311,13 @@ class IOHandlerlibyt(BaseIOHandler):
         field_list = self.param_yt["field_list"]
         if field_list[fname]["field_define_type"] == "cell-centered":
             data_convert = self.grid_data[grid.id][fname]
-            assert data_convert is not None, "This MPI rank does not have grid id [%s]." % grid.id
+            assert data_convert is not None, "This MPI rank does not have grid id [%s], it's on rank [%d]." % \
+                                             (grid.id, grid.MPI_rank)
         elif field_list[fname]["field_define_type"] == "face-centered":
             # convert to cell-centered
             data_temp = self.grid_data[grid.id][fname]
-            assert data_temp is not None, "This MPI rank does not have grid id [%s]." % grid.id
+            assert data_temp is not None, "This MPI rank does not have grid id [%s], it's on rank [%d].." % \
+                                          (grid.id, grid.MPI_rank)
             grid_dim = self.hierarchy["grid_dimensions"][grid.id]
             if field_list[fname]["swap_axes"] is True:
                 grid_dim = np.flip(grid_dim)
