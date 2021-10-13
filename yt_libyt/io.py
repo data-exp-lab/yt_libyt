@@ -160,8 +160,7 @@ class IOHandlerlibyt(BaseIOHandler):
                 fname_list.append(fname.encode(encoding='UTF-8', errors='strict'))
             local_id, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
             nonlocal_data = self.libyt.get_field_remote(fname_list, len(fname_list), to_prepare, len(to_prepare),
-                                                        nonlocal_id, len(nonlocal_id), nonlocal_rank,
-                                                        len(nonlocal_rank))
+                                                        nonlocal_id, nonlocal_rank, len(nonlocal_id))
 
             for ftype, fname in fields:
                 mylog.debug("#FLAG2")
@@ -194,11 +193,10 @@ class IOHandlerlibyt(BaseIOHandler):
         # Get nonlocal_data, libyt will perform RMA operation in this step.
         # Every rank must call this libyt method.
         nonlocal_data = self.libyt.get_field_remote(fname_list, len(fname_list), to_prepare, len(to_prepare),
-                                                    nonlocal_id, len(nonlocal_id), nonlocal_rank, len(nonlocal_rank))
+                                                    nonlocal_id, nonlocal_rank, len(nonlocal_id))
 
         mylog.debug("nonlocal_data keys = %s", nonlocal_data.keys())
         mylog.debug("nonlocal_data = %s", nonlocal_data)
-
 
         # Get local grid
         field_list = self.param_yt["field_list"]
