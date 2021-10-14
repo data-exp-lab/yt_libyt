@@ -27,13 +27,13 @@ class IOHandlerlibyt(BaseIOHandler):
     def __init__(self, ds):
         super(IOHandlerlibyt, self).__init__(ds)
         import libyt
-        self.libyt        = libyt
-        self.ds           = ds
-        self.grid_data    = libyt.grid_data
-        self.param_yt     = libyt.param_yt
-        self.hierarchy    = libyt.hierarchy
+        self.libyt = libyt
+        self.ds = ds
+        self.grid_data = libyt.grid_data
+        self.param_yt = libyt.param_yt
+        self.hierarchy = libyt.hierarchy
         self._field_dtype = "float64"
-        self.myrank       = IOHandlerlibyt._get_my_rank()
+        self.myrank = IOHandlerlibyt._get_my_rank()
 
 ###     ghost_zones != 0 is not supported yet
 #       self.my_slice = (slice(ghost_zones,-ghost_zones),
@@ -134,40 +134,37 @@ class IOHandlerlibyt(BaseIOHandler):
         if len(fluid_fields) == 0:
             return rv
 
+        # Prepare nonlocal data
+        nonlocal_data = self._prepare_remote_field_from_libyt([chunk], fields)
+
         for field in fluid_fields:
             ftype, fname = field
             for g in chunk.objs:
-                # TODO: Support Nonlocal
                 mylog.debug("#FLAG1")
-                rv[g.id][field] = self._get_field_from_libyt(g, fname)
+                if g.MPI_rank == self.myrank:
+                    rv[g.id][field] = self._get_field_from_libyt(g, fname)
+                else:
+                    rv[g.id][field] = self._get_field_from_libyt(g, fname, nonlocal_data=nonlocal_data)
         return rv
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
         chunks = list(chunks)
 
+        # Prepare nonlocal data
+        nonlocal_data = self._prepare_remote_field_from_libyt(chunks, fields)
+
         if selector.__class__.__name__ == "GridSelector":
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError("class IOHandlerlibyt, def _read_fluid_selection, selector == GridSelector, "
                                    "chunk to be read not equal to 1.")
-
-
             g = chunks[0].objs[0]
-
-            # Get non-local grid
-            fname_list = []
-            for ftype, fname in fields:
-                fname_list.append(fname.encode(encoding='UTF-8', errors='strict'))
-            local_id, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
-            nonlocal_data = self.libyt.get_field_remote(fname_list, len(fname_list), to_prepare, len(to_prepare),
-                                                        nonlocal_id, nonlocal_rank, len(nonlocal_id))
-
             for ftype, fname in fields:
                 mylog.debug("#FLAG2")
                 if g.MPI_rank == self.myrank:
                     rv[(ftype, fname)] = self._get_field_from_libyt(g, fname)
                 else:
-                    rv[(ftype, fname)] = nonlocal_data[g.id][fname]
+                    rv[(ftype, fname)] = self._get_field_from_libyt(g, fname, nonlocal_data=nonlocal_data)
             return rv
 
         if size is None:
@@ -180,26 +177,7 @@ class IOHandlerlibyt(BaseIOHandler):
         mylog.debug("Reading %s cells of %s fields in %s grids",
                     size, [f2 for f1, f2 in fields], ng)
 
-        fname_list = []
-        for ftype, fname in fields:
-            fname_list.append(fname.encode(encoding='UTF-8', errors='strict'))
-
-            mylog.debug("ftype = %s" % ftype)
-            mylog.debug("fname = %s" % fname)
-
-        # Distinguish local and non-local grid, and what should this rank prepared.
-        local_id, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
-
-        # Get nonlocal_data, libyt will perform RMA operation in this step.
-        # Every rank must call this libyt method.
-        nonlocal_data = self.libyt.get_field_remote(fname_list, len(fname_list), to_prepare, len(to_prepare),
-                                                    nonlocal_id, nonlocal_rank, len(nonlocal_id))
-
-        mylog.debug("nonlocal_data keys = %s", nonlocal_data.keys())
-        mylog.debug("nonlocal_data = %s", nonlocal_data)
-
-        # Get local grid
-        field_list = self.param_yt["field_list"]
+        # Get grid data
         for field in fields:
             offset = 0
             ftype, fname = field
@@ -209,40 +187,7 @@ class IOHandlerlibyt(BaseIOHandler):
                         mylog.debug("#FLAG3")
                         data_view = self._get_field_from_libyt(g, fname)
                     else:
-                        if field_list[fname]["field_define_type"] == "cell-centered":
-                            data_convert = nonlocal_data[g.id][fname]
-                        elif field_list[fname]["field_define_type"] == "face-centered":
-                            data_temp = nonlocal_data[g.id][fname]
-                            grid_dim = self.hierarchy["grid_dimensions"][g.id]
-                            if field_list[fname]["swap_axes"] is True:
-                                grid_dim = np.flip(grid_dim)
-                            axis = np.argwhere(grid_dim != data_temp.shape)
-                            assert len(axis) == 1, \
-                                "Field [ %s ] is not a face-centered data, " \
-                                "grid_dimensions = %s, field data dimensions = %s, considering swap_axes" % (
-                                fname, grid_dim, (data_temp.shape,))
-                            assert data_temp.shape[axis[0, 0]] - 1 == grid_dim[axis[0, 0]], \
-                                "Field [ %s ] is not a face-centered data, " \
-                                "grid_dimensions = %s, field data dimensions = %s, considering swap_axes" % (
-                                fname, grid_dim, (data_temp.shape,))
-                            if axis == 0:
-                                data_convert = 0.5 * (data_temp[:-1, :, :] + data_temp[1:, :, :])
-                            elif axis == 1:
-                                data_convert = 0.5 * (data_temp[:, :-1, :] + data_temp[:, 1:, :])
-                            elif axis == 2:
-                                data_convert = 0.5 * (data_temp[:, :, :-1] + data_temp[:, :, 1:])
-                        elif field_list[fname]["field_define_type"] == "derived_func":
-                            data_convert = nonlocal_data[g.id][fname]
-                        else:
-                            # Since we only supports "cell-centered", "face-centered", "derived_func" tags for now
-                            # Raise an error if enter this block.
-                            raise ValueError("libyt does not have field_define_type [ %s ]" %
-                                             (field_list[fname]["field_define_type"]))
-                        # Swap axes or not.
-                        if field_list[fname]["swap_axes"] is True:
-                            data_view = data_convert.swapaxes(0, 2)
-                        else:
-                            data_view = data_convert
+                        data_view = self._get_field_from_libyt(g, fname, nonlocal_data=nonlocal_data)
                     offset += g.select(selector, data_view, rv[field], offset)
             assert (offset == size)
         return rv
@@ -296,26 +241,49 @@ class IOHandlerlibyt(BaseIOHandler):
 
         return local_id, to_prepare, nonlocal_id, nonlocal_rank
 
-    def _get_remote_field_from_libyt(self, grids, fields):
+    def _prepare_remote_field_from_libyt(self, chunks, fields):
         # Wrapper for the RMA operation at libyt C library code.
-        pass
+        # Each rank must call this method, in order to get nonlocal grids.
+        fname_list = []
+        for ftype, fname in fields:
+            fname_list.append(fname.encode(encoding='UTF-8', errors='strict'))
+            mylog.debug("ftype = %s" % ftype)
+            mylog.debug("fname = %s" % fname)
+
+        # Distinguish local and non-local grid, and what should this rank prepared.
+        local_id, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
+
+        # Get nonlocal_data, libyt will perform RMA operation in this step.
+        # Every rank must call this libyt method.
+        nonlocal_data = self.libyt.get_field_remote(fname_list, len(fname_list), to_prepare, len(to_prepare),
+                                                    nonlocal_id, nonlocal_rank, len(nonlocal_id))
+
+        return nonlocal_data
 
     def _get_remote_particle_from_libyt(self, grids, ptf):
         # Counter-part of _get_remote_field_from_libyt for supporting particles.
         pass
 
-    def _get_field_from_libyt(self, grid, fname):
-        # This method is to get the local grid data.
+    def _get_field_from_libyt(self, grid, fname, nonlocal_data=None):
+        # This method is to get the grid data.
+        # If nonlocal_data is none, which means to get a local grid.
+        # Otherwise, read the nonlocal data in nonlocal_data.
         field_list = self.param_yt["field_list"]
         if field_list[fname]["field_define_type"] == "cell-centered":
-            data_convert = self.grid_data[grid.id][fname]
+            if nonlocal_data is None:
+                data_convert = self.grid_data[grid.id][fname]
+            else:
+                data_convert = nonlocal_data[grid.id][fname]
             assert data_convert is not None, "This MPI rank does not have grid id [%s], it's on rank [%d]." % \
                                              (grid.id, grid.MPI_rank)
         elif field_list[fname]["field_define_type"] == "face-centered":
-            # convert to cell-centered
-            data_temp = self.grid_data[grid.id][fname]
+            if nonlocal_data is None:
+                data_temp = self.grid_data[grid.id][fname]
+            else:
+                data_temp = nonlocal_data[grid.id][fname]
             assert data_temp is not None, "This MPI rank does not have grid id [%s], it's on rank [%d].." % \
                                           (grid.id, grid.MPI_rank)
+            # convert to cell-centered
             grid_dim = self.hierarchy["grid_dimensions"][grid.id]
             if field_list[fname]["swap_axes"] is True:
                 grid_dim = np.flip(grid_dim)
@@ -333,7 +301,10 @@ class IOHandlerlibyt(BaseIOHandler):
             elif axis == 2:
                 data_convert = 0.5 * (data_temp[:, :, :-1] + data_temp[:, :, 1:])
         elif field_list[fname]["field_define_type"] == "derived_func":
-            data_convert = self.libyt.derived_func(grid.id, fname)
+            if nonlocal_data is None:
+                data_convert = self.libyt.derived_func(grid.id, fname)
+            else:
+                data_convert = nonlocal_data[grid.id][fname]
         else:
             # Since we only supports "cell-centered", "face-centered", "derived_func" tags for now
             # Raise an error if enter this block.
