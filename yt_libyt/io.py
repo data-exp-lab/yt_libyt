@@ -42,9 +42,16 @@ class IOHandlerlibyt(BaseIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
-        # TODO: Support get non-local grid
-        #  (1) Collect all the particle attribute in a dictionary, since we need to make
-        #      all the rank in the same RMA epoch.
+
+        # Get position (coordinate) label.
+        for ptype in ptf.keys():
+            coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
+            if None in coor_label:
+                raise ValueError("Particle label representing postion X/Y/Z not set!")
+            ptf[ptype] = coor_label
+
+        # Get remote data.
+        nonlocal_data = self._prepare_remote_particle_from_libyt(chunks, ptf)
 
         for chunk in chunks:
             for g in chunk.objs:
@@ -55,14 +62,18 @@ class IOHandlerlibyt(BaseIOHandler):
 
                 # else, fetch the position x/y/z of particle by ptype
                 for ptype in ptf.keys():
-                    coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
-                    if None in coor_label:
-                        raise ValueError("coor_x, coor_y, coor_z label not set!")
-                    x = self.libyt.get_attr(g.id, ptype, coor_label[0])
-                    y = self.libyt.get_attr(g.id, ptype, coor_label[1])
-                    z = self.libyt.get_attr(g.id, ptype, coor_label[2])
+                    coor_label = ptf[ptype]
+                    if g.MPI_rank == self.myrank:
+                        x = self.libyt.get_attr(g.id, ptype, coor_label[0])
+                        y = self.libyt.get_attr(g.id, ptype, coor_label[1])
+                        z = self.libyt.get_attr(g.id, ptype, coor_label[2])
+                    else:
+                        x = nonlocal_data[g.id][ptype][coor_label[0]]
+                        y = nonlocal_data[g.id][ptype][coor_label[1]]
+                        z = nonlocal_data[g.id][ptype][coor_label[2]]
 
-                    # g.id ptype particle number is 0, libyt.get_attr will return None
+                    # g.id ptype particle number is 0, libyt.get_attr will return None, so continue.
+                    # Else, yield position.
                     if x is None or y is None or z is None:
                         continue
                     else:
@@ -70,9 +81,20 @@ class IOHandlerlibyt(BaseIOHandler):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
-        # TODO: Support get non-local grid
-        #  (1) Collect all the particle attribute in a dictionary, since we need to make
-        #      all the rank in the same RMA epoch.
+
+        # Get position (coordinate) label and append particle attribute to get after them.
+        ptf_all = {}
+        for ptype in ptf.keys():
+            coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label'].copy()
+            if None in coor_label:
+                raise ValueError("Particle label representing postion X/Y/Z not set!")
+            ptf_all[ptype] = coor_label
+            for field in ptf[ptype]:
+                ptf_all[ptype].append(field)
+
+        # Get remote data.
+        nonlocal_data = self._prepare_remote_particle_from_libyt(chunks, ptf_all)
+
         for chunk in chunks:
             for g in chunk.objs:
                 # if grid_particle_count, which is sum of all particle number
@@ -80,14 +102,20 @@ class IOHandlerlibyt(BaseIOHandler):
                 if self.hierarchy['grid_particle_count'][g.id] == 0:
                     continue
 
-                # else, fetch the position x/y/z of particle by ptype
+                # else, get the data.
                 for ptype in ptf.keys():
+                    # fetch the position x/y/z of particle by ptype
                     coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
                     if None in coor_label:
                         raise ValueError("coor_x, coor_y, coor_z label not set!")
-                    x = self.libyt.get_attr(g.id, ptype, coor_label[0])
-                    y = self.libyt.get_attr(g.id, ptype, coor_label[1])
-                    z = self.libyt.get_attr(g.id, ptype, coor_label[2])
+                    if g.MPI_rank == self.myrank:
+                        x = self.libyt.get_attr(g.id, ptype, coor_label[0])
+                        y = self.libyt.get_attr(g.id, ptype, coor_label[1])
+                        z = self.libyt.get_attr(g.id, ptype, coor_label[2])
+                    else:
+                        x = nonlocal_data[g.id][ptype][coor_label[0]]
+                        y = nonlocal_data[g.id][ptype][coor_label[1]]
+                        z = nonlocal_data[g.id][ptype][coor_label[2]]
 
                     # g.id ptype particle number is 0, libyt.get_attr will return None
                     if x is None or y is None or z is None:
@@ -98,7 +126,10 @@ class IOHandlerlibyt(BaseIOHandler):
                         continue
 
                     for field in ptf[ptype]:
-                        data = self.libyt.get_attr(g.id, ptype, field)
+                        if g.MPI_rank == self.myrank:
+                            data = self.libyt.get_attr(g.id, ptype, field)
+                        else:
+                            data = nonlocal_data[g.id][ptype][field]
                         # if ptype particle num in grid g.id = 0, get_attr will return None.
                         # then we shall continue the loop
                         if data is None:
@@ -260,9 +291,29 @@ class IOHandlerlibyt(BaseIOHandler):
 
         return nonlocal_data
 
-    def _get_remote_particle_from_libyt(self, grids, ptf):
-        # Counter-part of _get_remote_field_from_libyt for supporting particles.
-        pass
+    def _prepare_remote_particle_from_libyt(self, chunks, ptf):
+        # Wrapper for the RMA operation at libyt C library code.
+        # For supporting particles. Each rank must call this method.
+
+        # String inside ptf should be encode in UTF-8, and attributes should be in list obj.
+        ptf_c = {}
+        for key in ptf.keys():
+            attr_list = []
+            for attr in ptf[key]:
+                attr_list.append(attr.encode(encoding='UTF-8', errors='strict'))
+            ptype = key.encode(encoding='UTF-8', errors='strict')
+            ptf_c[ptype] = attr_list
+
+        mylog.debug("ptf_c = %s", ptf_c)
+
+        local_id, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
+
+        # TODO: Filter out those who really has particles in their grid.
+
+        nonlocal_data = self.libyt.get_attr_remote(ptf_c, ptf_c.keys(), to_prepare, len(to_prepare),
+                                                   nonlocal_id, nonlocal_rank, len(nonlocal_id))
+
+        return nonlocal_data
 
     def _get_field_from_libyt(self, grid, fname, nonlocal_data=None):
         # This method is to get the grid data.
