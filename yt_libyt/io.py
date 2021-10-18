@@ -91,6 +91,7 @@ class IOHandlerlibyt(BaseIOHandler):
             ptf_all[ptype] = coor_label
             for field in ptf[ptype]:
                 ptf_all[ptype].append(field)
+            ptf_all[ptype] = set(ptf_all[ptype])
 
         # Get remote data.
         nonlocal_data = self._prepare_remote_particle_from_libyt(chunks, ptf_all)
@@ -302,7 +303,7 @@ class IOHandlerlibyt(BaseIOHandler):
             for attr in ptf[key]:
                 attr_list.append(attr.encode(encoding='UTF-8', errors='strict'))
             ptype = key.encode(encoding='UTF-8', errors='strict')
-            ptf_c[ptype] = attr_list
+            ptf_c[ptype] = set(attr_list)
 
         mylog.debug("ptf_c = %s", ptf_c)
 
