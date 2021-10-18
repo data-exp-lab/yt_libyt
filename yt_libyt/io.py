@@ -44,14 +44,15 @@ class IOHandlerlibyt(BaseIOHandler):
         chunks = list(chunks)
 
         # Get position (coordinate) label.
+        ptf_new = {}
         for ptype in ptf.keys():
             coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
             if None in coor_label:
                 raise ValueError("Particle label representing postion X/Y/Z not set!")
-            ptf[ptype] = coor_label
+            ptf_new[ptype] = coor_label
 
         # Get remote data.
-        nonlocal_data = self._prepare_remote_particle_from_libyt(chunks, ptf)
+        nonlocal_data = self._prepare_remote_particle_from_libyt(chunks, ptf_new)
 
         for chunk in chunks:
             for g in chunk.objs:
@@ -62,7 +63,7 @@ class IOHandlerlibyt(BaseIOHandler):
 
                 # else, fetch the position x/y/z of particle by ptype
                 for ptype in ptf.keys():
-                    coor_label = ptf[ptype]
+                    coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
                     if g.MPI_rank == self.myrank:
                         x = self.libyt.get_attr(g.id, ptype, coor_label[0])
                         y = self.libyt.get_attr(g.id, ptype, coor_label[1])
@@ -83,18 +84,18 @@ class IOHandlerlibyt(BaseIOHandler):
         chunks = list(chunks)
 
         # Get position (coordinate) label and append particle attribute to get after them.
-        ptf_all = {}
+        ptf_new = {}
         for ptype in ptf.keys():
             coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label'].copy()
             if None in coor_label:
                 raise ValueError("Particle label representing postion X/Y/Z not set!")
-            ptf_all[ptype] = coor_label
+            ptf_new[ptype] = coor_label
             for field in ptf[ptype]:
-                ptf_all[ptype].append(field)
-            ptf_all[ptype] = set(ptf_all[ptype])
+                ptf_new[ptype].append(field)
+            ptf_new[ptype] = set(ptf_new[ptype])
 
         # Get remote data.
-        nonlocal_data = self._prepare_remote_particle_from_libyt(chunks, ptf_all)
+        nonlocal_data = self._prepare_remote_particle_from_libyt(chunks, ptf_new)
 
         for chunk in chunks:
             for g in chunk.objs:
