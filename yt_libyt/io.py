@@ -281,6 +281,7 @@ class IOHandlerlibyt(BaseIOHandler):
         if rma is True:
             # Get nonlocal_data, libyt will perform RMA operation in this step.
             # Every rank must call this libyt method.
+            mylog.debug("Getting nonlocal data through libyt ...")
             nonlocal_data = self.libyt.get_field_remote(fname_list, len(fname_list), to_prepare, len(to_prepare),
                                                         nonlocal_id, nonlocal_rank, len(nonlocal_id))
         else:
@@ -303,9 +304,21 @@ class IOHandlerlibyt(BaseIOHandler):
 
         rma, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
 
-        # TODO: Filter out those who really has particles in their grid.
+        # Filter out those who really has particles in their grid.
+        par_count = self.hierarchy['grid_particle_count']
+
+        index = np.argwhere(par_count[to_prepare] > 0)
+        to_prepare = np.asarray(to_prepare)
+        to_prepare = list(to_prepare[index].flatten())
+
+        index = np.argwhere(par_count[nonlocal_id] > 0)
+        nonlocal_id = np.asarray(nonlocal_id)
+        nonlocal_id = list(nonlocal_id[index].flatten())
+        nonlocal_rank = np.asarray(nonlocal_rank)
+        nonlocal_rank = list(nonlocal_rank[index].flatten())
 
         if rma is True:
+            mylog.debug("Getting nonlocal data through libyt ...")
             nonlocal_data = self.libyt.get_attr_remote(ptf_c, ptf_c.keys(), to_prepare, len(to_prepare),
                                                        nonlocal_id, nonlocal_rank, len(nonlocal_id))
         else:
