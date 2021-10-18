@@ -173,7 +173,6 @@ class IOHandlerlibyt(BaseIOHandler):
         for field in fluid_fields:
             ftype, fname = field
             for g in chunk.objs:
-                mylog.debug("#FLAG1")
                 if g.MPI_rank == self.myrank:
                     rv[g.id][field] = self._get_field_from_libyt(g, fname)
                 else:
@@ -193,7 +192,6 @@ class IOHandlerlibyt(BaseIOHandler):
                                    "chunk to be read not equal to 1.")
             g = chunks[0].objs[0]
             for ftype, fname in fields:
-                mylog.debug("#FLAG2")
                 if g.MPI_rank == self.myrank:
                     rv[(ftype, fname)] = self._get_field_from_libyt(g, fname)
                 else:
@@ -217,7 +215,6 @@ class IOHandlerlibyt(BaseIOHandler):
             for chunk in chunks:
                 for g in chunk.objs:
                     if g.MPI_rank == self.myrank:
-                        mylog.debug("#FLAG3")
                         data_view = self._get_field_from_libyt(g, fname)
                     else:
                         data_view = self._get_field_from_libyt(g, fname, nonlocal_data=nonlocal_data)
@@ -249,11 +246,6 @@ class IOHandlerlibyt(BaseIOHandler):
                     local_id.append(g.id)
         num_nonlocal_grids = len(nonlocal_id)
 
-        mylog.debug("local grid = %s" % local_id)
-        mylog.debug("num nonlocal grid  = %s" % num_nonlocal_grids)
-        mylog.debug("nonlocal grid id   = %s" % nonlocal_id)
-        mylog.debug("nonlocal grid rank = %s" % nonlocal_rank)
-
         # Gather all non-local grids in each rank.
         sendcounts = comm.gather(num_nonlocal_grids, root=0)
         sendcounts = comm.bcast(sendcounts, root=0)
@@ -262,15 +254,10 @@ class IOHandlerlibyt(BaseIOHandler):
         comm.Gatherv(sendbuf=sendbuf, recvbuf=(recvbuf, sendcounts), root=0)
         comm.Bcast(recvbuf, root=0)
 
-        mylog.debug("sendcounts = %s" % sendcounts)
-        mylog.debug("all non-local grids = %s" % recvbuf)
-
         # Get grid id that this rank has to prepare.
         proc_num = self.hierarchy["proc_num"][:, 0]
         index = np.argwhere(proc_num[recvbuf] == self.myrank)
         to_prepare = list(np.unique(recvbuf[index]))
-
-        mylog.debug("to_prepare = %s" % to_prepare)
 
         return local_id, to_prepare, nonlocal_id, nonlocal_rank
 
@@ -304,8 +291,6 @@ class IOHandlerlibyt(BaseIOHandler):
                 attr_list.append(attr.encode(encoding='UTF-8', errors='strict'))
             ptype = key.encode(encoding='UTF-8', errors='strict')
             ptf_c[ptype] = set(attr_list)
-
-        mylog.debug("ptf_c = %s", ptf_c)
 
         local_id, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
 
