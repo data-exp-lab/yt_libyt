@@ -259,7 +259,13 @@ class IOHandlerlibyt(BaseIOHandler):
         index = np.argwhere(proc_num[recvbuf] == self.myrank)
         to_prepare = list(np.unique(recvbuf[index]))
 
-        return local_id, to_prepare, nonlocal_id, nonlocal_rank
+        # Determine whether we should call for libyt C extend method for RMA operation.
+        if sum(sendcounts) != 0:
+            rma = True
+        else:
+            rma = False
+
+        return rma, to_prepare, nonlocal_id, nonlocal_rank
 
     def _prepare_remote_field_from_libyt(self, chunks, fields):
         # Wrapper for the RMA operation at libyt C library code.
@@ -270,12 +276,15 @@ class IOHandlerlibyt(BaseIOHandler):
         fname_list = set(fname_list)
 
         # Distinguish local and non-local grid, and what should this rank prepared.
-        local_id, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
+        rma, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
 
-        # Get nonlocal_data, libyt will perform RMA operation in this step.
-        # Every rank must call this libyt method.
-        nonlocal_data = self.libyt.get_field_remote(fname_list, len(fname_list), to_prepare, len(to_prepare),
-                                                    nonlocal_id, nonlocal_rank, len(nonlocal_id))
+        if rma is True:
+            # Get nonlocal_data, libyt will perform RMA operation in this step.
+            # Every rank must call this libyt method.
+            nonlocal_data = self.libyt.get_field_remote(fname_list, len(fname_list), to_prepare, len(to_prepare),
+                                                        nonlocal_id, nonlocal_rank, len(nonlocal_id))
+        else:
+            nonlocal_data = None
 
         return nonlocal_data
 
@@ -292,12 +301,15 @@ class IOHandlerlibyt(BaseIOHandler):
             ptype = key.encode(encoding='UTF-8', errors='strict')
             ptf_c[ptype] = set(attr_list)
 
-        local_id, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
+        rma, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
 
         # TODO: Filter out those who really has particles in their grid.
 
-        nonlocal_data = self.libyt.get_attr_remote(ptf_c, ptf_c.keys(), to_prepare, len(to_prepare),
-                                                   nonlocal_id, nonlocal_rank, len(nonlocal_id))
+        if rma is True:
+            nonlocal_data = self.libyt.get_attr_remote(ptf_c, ptf_c.keys(), to_prepare, len(to_prepare),
+                                                       nonlocal_id, nonlocal_rank, len(nonlocal_id))
+        else:
+            nonlocal_data = None
 
         return nonlocal_data
 
