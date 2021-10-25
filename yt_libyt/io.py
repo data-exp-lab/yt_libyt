@@ -331,21 +331,36 @@ class IOHandlerlibyt(BaseIOHandler):
         # If nonlocal_data is none, which means to get a local grid.
         # Otherwise, read the nonlocal data in nonlocal_data.
         field_list = self.param_yt["field_list"]
+        ghost_cell = field_list[fname]["ghost_cell"]
         if field_list[fname]["field_define_type"] == "cell-centered":
+            # Read data
             if nonlocal_data is None:
                 data_convert = self.grid_data[grid.id][fname]
             else:
                 data_convert = nonlocal_data[grid.id][fname]
-            assert data_convert is not None, "This MPI rank does not have grid id [%s], it's on rank [%d]." % \
-                                             (grid.id, grid.MPI_rank)
+            assert data_convert is not None, "Cannot get grid id [%s], it's on rank [%d]." % (grid.id, grid.MPI_rank)
+
+            # Remove ghost cell, and get my slice
+            data_shape = data_convert.shape
+            data_convert = data_convert[ghost_cell[0]:(data_shape[0]-ghost_cell[1]),
+                                        ghost_cell[2]:(data_shape[1]-ghost_cell[3]),
+                                        ghost_cell[4]:(data_shape[2]-ghost_cell[5])]
+
         elif field_list[fname]["field_define_type"] == "face-centered":
+            # Read data
             if nonlocal_data is None:
                 data_temp = self.grid_data[grid.id][fname]
             else:
                 data_temp = nonlocal_data[grid.id][fname]
-            assert data_temp is not None, "This MPI rank does not have grid id [%s], it's on rank [%d].." % \
-                                          (grid.id, grid.MPI_rank)
-            # convert to cell-centered
+            assert data_temp is not None, "Cannot get grid id [%s], it's on rank [%d]." % (grid.id, grid.MPI_rank)
+
+            # Remove ghost cell, and get my slice
+            data_shape = data_temp.shape
+            data_temp = data_temp[ghost_cell[0]:(data_shape[0] - ghost_cell[1]),
+                                  ghost_cell[2]:(data_shape[1] - ghost_cell[3]),
+                                  ghost_cell[4]:(data_shape[2] - ghost_cell[5])]
+
+            # Convert to cell-centered
             grid_dim = self.hierarchy["grid_dimensions"][grid.id]
             if field_list[fname]["swap_axes"] is True:
                 grid_dim = np.flip(grid_dim)
@@ -363,6 +378,7 @@ class IOHandlerlibyt(BaseIOHandler):
             elif axis == 2:
                 data_convert = 0.5 * (data_temp[:, :, :-1] + data_temp[:, :, 1:])
         elif field_list[fname]["field_define_type"] == "derived_func":
+            # Read data
             if nonlocal_data is None:
                 data_convert = self.libyt.derived_func(grid.id, fname)
             else:
