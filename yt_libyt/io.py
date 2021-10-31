@@ -270,15 +270,17 @@ class IOHandlerlibyt(BaseIOHandler):
     def _prepare_remote_field_from_libyt(self, chunks, fields):
         # Wrapper for the RMA operation at libyt C library code.
         # Each rank must call this method, in order to get nonlocal grids.
-        fname_list = []
-        for ftype, fname in fields:
-            fname_list.append(fname.encode(encoding='UTF-8', errors='strict'))
-        fname_list = set(fname_list)
 
         # Distinguish local and non-local grid, and what should this rank prepared.
         rma, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
 
         if rma is True:
+            # Encode field name to UTF-8
+            fname_list = []
+            for ftype, fname in fields:
+                fname_list.append(fname.encode(encoding='UTF-8', errors='strict'))
+            fname_list = sorted(set(fname_list))
+
             # Get nonlocal_data, libyt will perform RMA operation in this step.
             # Every rank must call this libyt method.
             mylog.debug("Getting nonlocal data through libyt ...")
@@ -293,15 +295,7 @@ class IOHandlerlibyt(BaseIOHandler):
         # Wrapper for the RMA operation at libyt C library code.
         # For supporting particles. Each rank must call this method.
 
-        # String inside ptf should be encode in UTF-8, and attributes should be in list obj.
-        ptf_c = {}
-        for key in ptf.keys():
-            attr_list = []
-            for attr in ptf[key]:
-                attr_list.append(attr.encode(encoding='UTF-8', errors='strict'))
-            ptype = key.encode(encoding='UTF-8', errors='strict')
-            ptf_c[ptype] = set(attr_list)
-
+        # Distinguish local and non-local grid, and what should this rank prepared.
         rma, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
 
         # Filter out those who really has particles in their grid.
@@ -318,6 +312,16 @@ class IOHandlerlibyt(BaseIOHandler):
         nonlocal_rank = list(nonlocal_rank[index].flatten())
 
         if rma is True:
+            # String inside ptf should be encode in UTF-8, and attributes should be in list obj.
+            ptf_c = {}
+            for key in ptf.keys():
+                attr_list = []
+                for attr in ptf[key]:
+                    attr_list.append(attr.encode(encoding='UTF-8', errors='strict'))
+                ptype = key.encode(encoding='UTF-8', errors='strict')
+                ptf_c[ptype] = sorted(set(attr_list))
+
+            # Call libyt RMA
             mylog.debug("Getting nonlocal data through libyt ...")
             nonlocal_data = self.libyt.get_attr_remote(ptf_c, ptf_c.keys(), to_prepare, len(to_prepare),
                                                        nonlocal_id, nonlocal_rank, len(nonlocal_id))
