@@ -94,7 +94,7 @@ class libytHierarchy(GridIndex):
         self.max_level = self.grid_levels.max()
 
         # Indicates which OpenMPI rank it belongs to.
-        self.proc_num = hierarchy['proc_num'].copy()
+        self.proc_num = hierarchy['proc_num']
 
         # allocate all grid objects
         self.grids = np.empty(self.num_grids, dtype='object')
