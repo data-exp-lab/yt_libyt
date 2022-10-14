@@ -186,17 +186,17 @@ class IOHandlerlibyt(BaseIOHandler):
         # Prepare nonlocal data
         nonlocal_data = self._prepare_remote_field_from_libyt(chunks, fields)
 
-        if selector.__class__.__name__ == "GridSelector":
-            if not (len(chunks) == len(chunks[0].objs) == 1):
-                raise RuntimeError("class IOHandlerlibyt, def _read_fluid_selection, selector == GridSelector, "
-                                   "chunk to be read not equal to 1.")
-            g = chunks[0].objs[0]
-            for ftype, fname in fields:
-                if g.MPI_rank == self.myrank:
-                    rv[(ftype, fname)] = self._get_field_from_libyt(g, fname)
-                else:
-                    rv[(ftype, fname)] = self._get_field_from_libyt(g, fname, nonlocal_data=nonlocal_data)
-            return rv
+        # if selector.__class__.__name__ == "GridSelector":
+        #     if not (len(chunks) == len(chunks[0].objs) == 1):
+        #         raise RuntimeError("class IOHandlerlibyt, def _read_fluid_selection, selector == GridSelector, "
+        #                            "chunk to be read not equal to 1.")
+        #     g = chunks[0].objs[0]
+        #     for ftype, fname in fields:
+        #         if g.MPI_rank == self.myrank:
+        #             rv[(ftype, fname)] = self._get_field_from_libyt(g, fname)
+        #         else:
+        #             rv[(ftype, fname)] = self._get_field_from_libyt(g, fname, nonlocal_data=nonlocal_data)
+        #     return rv
 
         if size is None:
             size = sum((g.count(selector) for chunk in chunks for g in chunk.objs))
