@@ -80,20 +80,24 @@ class libytHierarchy(GridIndex):
     def _count_grids(self):
         self.num_grids = self.libyt.param_yt['num_grids']
 
+    def _initialize_grid_arrays(self):
+        # We don't need to initialize a new buffer for hierarchy,
+        # since these array are initialized and set in libyt.
+        pass
+
     def _parse_index(self):
+        mylog.debug("Setting index array for %s grids.", self.num_grids)
+
         # hierarchy information of all grids
         hierarchy = self.libyt.hierarchy
-
-        # **copy** data from hierarchy since they may have different data types than self.grid_xxx
-        # also note that all 1D arrays below are actually declared as [:][1]
-        self.grid_left_edge[:] = hierarchy['grid_left_edge'][:]
-        self.grid_right_edge[:] = hierarchy['grid_right_edge'][:]
-        self.grid_dimensions[:] = hierarchy['grid_dimensions'][:]
-        self.grid_levels[:] = hierarchy['grid_levels'][:]
-        self.grid_particle_count[:] = hierarchy['grid_particle_count'][:]
+        self.grid_dimensions = hierarchy["grid_dimensions"]
+        self.grid_left_edge = self.ds.arr(hierarchy["grid_left_edge"], "code_length")
+        self.grid_right_edge = self.ds.arr(hierarchy["grid_right_edge"], "code_length")
+        self.grid_levels = hierarchy["grid_levels"]
+        self.grid_particle_count = hierarchy["grid_particle_count"]
         self.max_level = self.grid_levels.max()
 
-        # Indicates which OpenMPI rank it belongs to.
+        # Indicates which MPI rank it belongs to.
         self.proc_num = hierarchy['proc_num']
 
         # allocate all grid objects
@@ -101,7 +105,7 @@ class libytHierarchy(GridIndex):
         for i in range(self.num_grids):
             self.grids[i] = self.grid(i, self, self.grid_levels.flat[i])
             self.grids[i].MPI_rank = self.proc_num[i, 0]
-            self.grids[i].filename = "MPI_Rank_%07i" % (self.proc_num[i,0])
+            self.grids[i].filename = "MPI_Rank_%07i" % (self.proc_num[i, 0])
 
     def _populate_grid_objects(self):
         # must flat it since 'grid_parent_id' has the dimension [num_grids][1]
