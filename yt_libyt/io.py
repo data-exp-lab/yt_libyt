@@ -35,11 +35,6 @@ class IOHandlerlibyt(BaseIOHandler):
         self._field_dtype = "float64"
         self.myrank = IOHandlerlibyt._get_my_rank()
 
-###     ghost_zones != 0 is not supported yet
-#       self.my_slice = (slice(ghost_zones,-ghost_zones),
-#                        slice(ghost_zones,-ghost_zones),
-#                        slice(ghost_zones,-ghost_zones))
-
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
 
@@ -170,6 +165,7 @@ class IOHandlerlibyt(BaseIOHandler):
         # Prepare nonlocal data
         nonlocal_data = self._prepare_remote_field_from_libyt([chunk], fields)
 
+        # TODO: Bug, rv should allocate a new buffer.
         for field in fluid_fields:
             ftype, fname = field
             for g in chunk.objs:
@@ -186,6 +182,7 @@ class IOHandlerlibyt(BaseIOHandler):
         # Prepare nonlocal data
         nonlocal_data = self._prepare_remote_field_from_libyt(chunks, fields)
 
+        #TODO: Allocate buffer for rv, don't make rv point directly to simulation data buffer.
         # if selector.__class__.__name__ == "GridSelector":
         #     if not (len(chunks) == len(chunks[0].objs) == 1):
         #         raise RuntimeError("class IOHandlerlibyt, def _read_fluid_selection, selector == GridSelector, "
@@ -337,12 +334,16 @@ class IOHandlerlibyt(BaseIOHandler):
         field_list = self.param_yt["field_list"]
         ghost_cell = field_list[fname]["ghost_cell"]
         if field_list[fname]["field_define_type"] == "cell-centered":
-            # Read data
-            if nonlocal_data is None:
-                data_convert = self.grid_data[grid.id][fname]
-            else:
-                data_convert = nonlocal_data[grid.id][fname]
-            assert data_convert is not None, "Cannot get grid id [%s], it's on rank [%d]." % (grid.id, grid.MPI_rank)
+            # Read data from grid_data, or nonlocal_data.
+            # We don't create key-value pair if no data pass in from user.
+            try:
+                if nonlocal_data is None:
+                    data_convert = self.grid_data[grid.id][fname]
+                else:
+                    data_convert = nonlocal_data[grid.id][fname]
+            except:
+                mylog.error("Cannot get cell-centered grid [%s] data on MPI rank [%d]." % (grid.id, grid.MPI_rank))
+                raise RuntimeError("libyt didn't get the data successfully.")
 
             # Remove ghost cell, and get my slice
             data_shape = data_convert.shape
@@ -351,12 +352,16 @@ class IOHandlerlibyt(BaseIOHandler):
                                         ghost_cell[4]:(data_shape[2]-ghost_cell[5])]
 
         elif field_list[fname]["field_define_type"] == "face-centered":
-            # Read data
-            if nonlocal_data is None:
-                data_temp = self.grid_data[grid.id][fname]
-            else:
-                data_temp = nonlocal_data[grid.id][fname]
-            assert data_temp is not None, "Cannot get grid id [%s], it's on rank [%d]." % (grid.id, grid.MPI_rank)
+            # Read data from grid_data, or nonlocal_data.
+            # We don't create key-value pair if no data pass in from user.
+            try:
+                if nonlocal_data is None:
+                    data_temp = self.grid_data[grid.id][fname]
+                else:
+                    data_temp = nonlocal_data[grid.id][fname]
+            except:
+                mylog.error("Cannot get face-centered grid [%s] data on MPI rank [%d]." % (grid.id, grid.MPI_rank))
+                raise RuntimeError("libyt didn't get the data successfully.")
 
             # Remove ghost cell, and get my slice
             data_shape = data_temp.shape
@@ -368,25 +373,29 @@ class IOHandlerlibyt(BaseIOHandler):
             grid_dim = self.hierarchy["grid_dimensions"][grid.id]
             if field_list[fname]["swap_axes"] is True:
                 grid_dim = np.flip(grid_dim)
-            axis = np.argwhere(grid_dim != data_temp.shape)
-            assert len(axis) == 1, \
-                "Field [ %s ] is not a face-centered data, " \
-                "grid_dimensions = %s, field data dimensions = %s, considering swap_axes" % (fname, grid_dim, (data_temp.shape,))
-            assert data_temp.shape[axis[0, 0]] - 1 == grid_dim[axis[0, 0]], \
-                "Field [ %s ] is not a face-centered data, " \
-                "grid_dimensions = %s, field data dimensions = %s, considering swap_axes" % (fname, grid_dim, (data_temp.shape,))
+            axis = np.argwhere(grid_dim != data_temp.shape).flatten()
+            if len(axis) != 1 or data_temp.shape[axis[0]] - 1 != grid_dim[axis[0]]:
+                mylog.error("Field [%s] in grid [%d] is not a face-centered data. "
+                            "It has dim = %s, but it should be dim = %s" % (fname, grid.id, (data_temp.shape,), grid_dim))
+                raise ValueError("Face-centered data dimension not match.")
+
             if axis == 0:
                 data_convert = 0.5 * (data_temp[:-1, :, :] + data_temp[1:, :, :])
             elif axis == 1:
                 data_convert = 0.5 * (data_temp[:, :-1, :] + data_temp[:, 1:, :])
             elif axis == 2:
                 data_convert = 0.5 * (data_temp[:, :, :-1] + data_temp[:, :, 1:])
-        elif field_list[fname]["field_define_type"] == "derived_func":
+
+        if field_list[fname]["field_define_type"] == "derived_func":
             # Read data
             if nonlocal_data is None:
                 data_convert = self.libyt.derived_func(grid.id, fname)
             else:
-                data_convert = nonlocal_data[grid.id][fname]
+                try:
+                    data_convert = nonlocal_data[grid.id][fname]
+                except:
+                    mylog.error("Cannot get derived field data in grid [%s] on MPI rank [%d]." % (grid.id, grid.MPI_rank))
+                    raise RuntimeError("libyt didn't get the data successfully.")
         else:
             # Since we only supports "cell-centered", "face-centered", "derived_func" tags for now
             # Raise an error if enter this block.
