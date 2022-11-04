@@ -388,14 +388,14 @@ class IOHandlerlibyt(BaseIOHandler):
 
         elif field_list[fname]["field_define_type"] == "derived_func":
             # Read data
-            if nonlocal_data is None:
-                data_convert = self.libyt.derived_func(grid.id, fname)
-            else:
-                try:
+            try:
+                if nonlocal_data is None:
+                    data_convert = self.libyt.derived_func(grid.id, fname)
+                else:
                     data_convert = nonlocal_data[grid.id][fname]
-                except:
-                    mylog.error("Cannot get derived field data in grid [%s] on MPI rank [%d]." % (grid.id, grid.MPI_rank))
-                    raise RuntimeError("libyt didn't get the data successfully.")
+            except:
+                mylog.error("Cannot get derived field data in grid [%s] on MPI rank [%d]." % (grid.id, grid.MPI_rank))
+                raise RuntimeError("libyt didn't get the data successfully.")
         else:
             # Since we only supports "cell-centered", "face-centered", "derived_func" tags for now
             # Raise an error if enter this block.
