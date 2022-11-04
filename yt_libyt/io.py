@@ -386,7 +386,7 @@ class IOHandlerlibyt(BaseIOHandler):
             elif axis == 2:
                 data_convert = 0.5 * (data_temp[:, :, :-1] + data_temp[:, :, 1:])
 
-        if field_list[fname]["field_define_type"] == "derived_func":
+        elif field_list[fname]["field_define_type"] == "derived_func":
             # Read data
             if nonlocal_data is None:
                 data_convert = self.libyt.derived_func(grid.id, fname)
