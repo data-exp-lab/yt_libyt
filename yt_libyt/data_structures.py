@@ -88,14 +88,24 @@ class libytHierarchy(GridIndex):
     def _parse_index(self):
         mylog.debug("Setting index array for %s grids.", self.num_grids)
 
-        # hierarchy information of all grids
+        # get hierarchy information of all grids from libyt
         hierarchy = self.libyt.hierarchy
         self.grid_dimensions = hierarchy["grid_dimensions"]
         self.grid_left_edge = self.ds.arr(hierarchy["grid_left_edge"], "code_length")
         self.grid_right_edge = self.ds.arr(hierarchy["grid_right_edge"], "code_length")
         self.grid_levels = hierarchy["grid_levels"]
-        self.grid_particle_count = hierarchy["grid_particle_count"]
+
+        # derive max_level
         self.max_level = self.grid_levels.max()
+
+        # derive grid_particle_count from particle_count_list.
+        # particle_count_list is created only if there is particles.
+        try:
+            self.particle_count_list = hierarchy["particle_count_list"]
+            self.grid_particle_count = np.sum(self.particle_count_list, axis=1)
+            self.grid_particle_count = self.grid_particle_count[..., np.newaxis]
+        except:
+            self.grid_particle_count = np.zeros((self.num_grids, 1), "int32")
 
         # Indicates which MPI rank it belongs to.
         self.proc_num = hierarchy['proc_num']
