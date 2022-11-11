@@ -51,13 +51,15 @@ class IOHandlerlibyt(BaseIOHandler):
 
         for chunk in chunks:
             for g in chunk.objs:
-                # if grid_particle_count, which is sum of all particle number
-                # in that grid is zero, continue
-                if self.hierarchy['grid_particle_count'][g.id] == 0:
-                    continue
 
-                # else, fetch the position x/y/z of particle by ptype
+                # fetch the position x/y/z of particle by ptype
                 for ptype in ptf.keys():
+
+                    # Get particle count in ptype, continue if it is zero
+                    index_label = self.param_yt['particle_list'][ptype]["label"]
+                    if self.hierarchy["particle_count_list"][g.id][index_label] == 0:
+                        continue
+
                     coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
                     if g.MPI_rank == self.myrank:
                         x = self.libyt.get_attr(g.id, ptype, coor_label[0])
@@ -68,10 +70,10 @@ class IOHandlerlibyt(BaseIOHandler):
                         y = nonlocal_data[g.id][ptype][coor_label[1]]
                         z = nonlocal_data[g.id][ptype][coor_label[2]]
 
-                    # g.id ptype particle number is 0, libyt.get_attr will return None, so continue.
-                    # Else, yield position.
+                    # g.id ptype particle number is 0, libyt.get_attr will return None,
+                    # It will not happen unless something went wrong when passing particle count to libyt.
                     if x is None or y is None or z is None:
-                        continue
+                        raise ValueError("Particle position should not be None.")
                     else:
                         yield ptype, (x, y, z)
 
@@ -94,17 +96,19 @@ class IOHandlerlibyt(BaseIOHandler):
 
         for chunk in chunks:
             for g in chunk.objs:
-                # if grid_particle_count, which is sum of all particle number
-                # in that grid is zero, continue
-                if self.hierarchy['grid_particle_count'][g.id] == 0:
-                    continue
 
-                # else, get the data.
+                # fetch particle data.
                 for ptype in ptf.keys():
+
+                    # get particle count in ptype, continue if it is zero
+                    index_label = self.param_yt['particle_list'][ptype]["label"]
+                    if self.hierarchy["particle_count_list"][g.id][index_label] == 0:
+                        continue
+
                     # fetch the position x/y/z of particle by ptype
                     coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
                     if None in coor_label:
-                        raise ValueError("coor_x, coor_y, coor_z label not set!")
+                        raise ValueError("Particle label representing postion X/Y/Z not set!")
                     if g.MPI_rank == self.myrank:
                         x = self.libyt.get_attr(g.id, ptype, coor_label[0])
                         y = self.libyt.get_attr(g.id, ptype, coor_label[1])
@@ -114,9 +118,10 @@ class IOHandlerlibyt(BaseIOHandler):
                         y = nonlocal_data[g.id][ptype][coor_label[1]]
                         z = nonlocal_data[g.id][ptype][coor_label[2]]
 
-                    # g.id ptype particle number is 0, libyt.get_attr will return None
+                    # g.id ptype particle number is 0, libyt.get_attr will return None.
+                    # It will not happen unless something went wrong when passing particle count to libyt.
                     if x is None or y is None or z is None:
-                        continue
+                        raise ValueError("Particle position should not be None.")
 
                     mask = selector.select_points(x, y, z, 0.0)
                     if mask is None:
@@ -127,10 +132,11 @@ class IOHandlerlibyt(BaseIOHandler):
                             data = self.libyt.get_attr(g.id, ptype, field)
                         else:
                             data = nonlocal_data[g.id][ptype][field]
+
                         # if ptype particle num in grid g.id = 0, get_attr will return None.
-                        # then we shall continue the loop
+                        # It will not happen unless something went wrong when passing particle count to libyt.
                         if data is None:
-                            continue
+                            ValueError("Particle data should not be None.")
                         else:
                             yield (ptype, field), data[mask]
 
