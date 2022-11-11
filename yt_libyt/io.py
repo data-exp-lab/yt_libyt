@@ -136,7 +136,7 @@ class IOHandlerlibyt(BaseIOHandler):
                         # if ptype particle num in grid g.id = 0, get_attr will return None.
                         # It will not happen unless something went wrong when passing particle count to libyt.
                         if data is None:
-                            ValueError("Particle data should not be None.")
+                            raise ValueError("Particle data should not be None.")
                         else:
                             yield (ptype, field), data[mask]
 
