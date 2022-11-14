@@ -347,7 +347,8 @@ class IOHandlerlibyt(BaseIOHandler):
                     data_convert = self.grid_data[grid.id][fname]
                 else:
                     data_convert = nonlocal_data[grid.id][fname]
-            except:
+            except Exception as err:
+                mylog.error(str(err))
                 mylog.error("Cannot get cell-centered grid [%s] data on MPI rank [%d]." % (grid.id, grid.MPI_rank))
                 raise RuntimeError("libyt didn't get the data successfully.")
 
@@ -365,7 +366,8 @@ class IOHandlerlibyt(BaseIOHandler):
                     data_temp = self.grid_data[grid.id][fname]
                 else:
                     data_temp = nonlocal_data[grid.id][fname]
-            except:
+            except Exception as err:
+                mylog.error(str(err))
                 mylog.error("Cannot get face-centered grid [%s] data on MPI rank [%d]." % (grid.id, grid.MPI_rank))
                 raise RuntimeError("libyt didn't get the data successfully.")
 
@@ -399,7 +401,8 @@ class IOHandlerlibyt(BaseIOHandler):
                     data_convert = self.libyt.derived_func(grid.id, fname)
                 else:
                     data_convert = nonlocal_data[grid.id][fname]
-            except:
+            except Exception as err:
+                mylog.error(str(err))
                 mylog.error("Cannot get derived field data in grid [%s] on MPI rank [%d]." % (grid.id, grid.MPI_rank))
                 raise RuntimeError("libyt didn't get the data successfully.")
         else:
