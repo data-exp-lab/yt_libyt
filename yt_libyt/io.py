@@ -302,7 +302,7 @@ class IOHandlerlibyt(BaseIOHandler):
         rma, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
 
         # Filter out those who really has particles in their grid.
-        par_count = self.hierarchy['grid_particle_count'][:, 0]
+        par_count = self.ds.index.grid_particle_count[:, 0]
 
         index = np.argwhere(par_count[to_prepare] > 0)
         to_prepare = np.asarray(to_prepare)
