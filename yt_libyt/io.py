@@ -339,7 +339,7 @@ class IOHandlerlibyt(BaseIOHandler):
         # Otherwise, read the nonlocal data in nonlocal_data.
         field_list = self.param_yt["field_list"]
         ghost_cell = field_list[fname]["ghost_cell"]
-        if field_list[fname]["field_define_type"] == "cell-centered":
+        if field_list[fname]["field_type"] == "cell-centered":
             # Read data from grid_data, or nonlocal_data.
             # We don't create key-value pair if no data pass in from user.
             try:
@@ -358,7 +358,7 @@ class IOHandlerlibyt(BaseIOHandler):
                                         ghost_cell[2]:(data_shape[1]-ghost_cell[3]),
                                         ghost_cell[4]:(data_shape[2]-ghost_cell[5])]
 
-        elif field_list[fname]["field_define_type"] == "face-centered":
+        elif field_list[fname]["field_type"] == "face-centered":
             # Read data from grid_data, or nonlocal_data.
             # We don't create key-value pair if no data pass in from user.
             try:
@@ -394,7 +394,7 @@ class IOHandlerlibyt(BaseIOHandler):
             elif axis == 2:
                 data_convert = 0.5 * (data_temp[:, :, :-1] + data_temp[:, :, 1:])
 
-        elif field_list[fname]["field_define_type"] == "derived_func":
+        elif field_list[fname]["field_type"] == "derived_func":
             # Read data
             try:
                 if nonlocal_data is None:
@@ -408,8 +408,8 @@ class IOHandlerlibyt(BaseIOHandler):
         else:
             # Since we only supports "cell-centered", "face-centered", "derived_func" tags for now
             # Raise an error if enter this block.
-            raise ValueError("libyt does not have field_define_type [ %s ]" %
-                             (field_list[fname]["field_define_type"]))
+            raise ValueError("libyt does not have field_type [ %s ]" %
+                             (field_list[fname]["field_type"]))
 
         # Swap axes or not, then return
         if field_list[fname]["contiguous_in_x"] is True:
