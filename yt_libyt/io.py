@@ -379,7 +379,7 @@ class IOHandlerlibyt(BaseIOHandler):
 
             # Convert to cell-centered
             grid_dim = self.hierarchy["grid_dimensions"][grid.id]
-            if field_list[fname]["swap_axes"] is True:
+            if field_list[fname]["contiguous_in_x"] is True:
                 grid_dim = np.flip(grid_dim)
             axis = np.argwhere(grid_dim != data_temp.shape).flatten()
             if len(axis) != 1 or data_temp.shape[axis[0]] - 1 != grid_dim[axis[0]]:
@@ -412,7 +412,7 @@ class IOHandlerlibyt(BaseIOHandler):
                              (field_list[fname]["field_define_type"]))
 
         # Swap axes or not, then return
-        if field_list[fname]["swap_axes"] is True:
+        if field_list[fname]["contiguous_in_x"] is True:
             return data_convert.swapaxes(0, 2)
         else:
             return data_convert
