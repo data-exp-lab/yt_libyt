@@ -62,15 +62,15 @@ class IOHandlerlibyt(BaseIOHandler):
 
                     coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
                     if g.MPI_rank == self.myrank:
-                        x = self.libyt.get_attr(g.id, ptype, coor_label[0])
-                        y = self.libyt.get_attr(g.id, ptype, coor_label[1])
-                        z = self.libyt.get_attr(g.id, ptype, coor_label[2])
+                        x = self.libyt.get_particle(g.id, ptype, coor_label[0])
+                        y = self.libyt.get_particle(g.id, ptype, coor_label[1])
+                        z = self.libyt.get_particle(g.id, ptype, coor_label[2])
                     else:
                         x = nonlocal_data[g.id][ptype][coor_label[0]]
                         y = nonlocal_data[g.id][ptype][coor_label[1]]
                         z = nonlocal_data[g.id][ptype][coor_label[2]]
 
-                    # g.id ptype particle number is 0, libyt.get_attr will return None,
+                    # g.id ptype particle number is 0, libyt.get_particle will return None,
                     # It will not happen unless something went wrong when passing particle count to libyt.
                     if x is None or y is None or z is None:
                         raise ValueError("Particle position should not be None.")
@@ -110,15 +110,15 @@ class IOHandlerlibyt(BaseIOHandler):
                     if None in coor_label:
                         raise ValueError("Particle label representing postion X/Y/Z not set!")
                     if g.MPI_rank == self.myrank:
-                        x = self.libyt.get_attr(g.id, ptype, coor_label[0])
-                        y = self.libyt.get_attr(g.id, ptype, coor_label[1])
-                        z = self.libyt.get_attr(g.id, ptype, coor_label[2])
+                        x = self.libyt.get_particle(g.id, ptype, coor_label[0])
+                        y = self.libyt.get_particle(g.id, ptype, coor_label[1])
+                        z = self.libyt.get_particle(g.id, ptype, coor_label[2])
                     else:
                         x = nonlocal_data[g.id][ptype][coor_label[0]]
                         y = nonlocal_data[g.id][ptype][coor_label[1]]
                         z = nonlocal_data[g.id][ptype][coor_label[2]]
 
-                    # g.id ptype particle number is 0, libyt.get_attr will return None.
+                    # g.id ptype particle number is 0, libyt.get_particle will return None.
                     # It will not happen unless something went wrong when passing particle count to libyt.
                     if x is None or y is None or z is None:
                         raise ValueError("Particle position should not be None.")
@@ -129,11 +129,11 @@ class IOHandlerlibyt(BaseIOHandler):
 
                     for field in ptf[ptype]:
                         if g.MPI_rank == self.myrank:
-                            data = self.libyt.get_attr(g.id, ptype, field)
+                            data = self.libyt.get_particle(g.id, ptype, field)
                         else:
                             data = nonlocal_data[g.id][ptype][field]
 
-                        # if ptype particle num in grid g.id = 0, get_attr will return None.
+                        # if ptype particle num in grid g.id = 0, get_particle will return None.
                         # It will not happen unless something went wrong when passing particle count to libyt.
                         if data is None:
                             raise ValueError("Particle data should not be None.")
@@ -326,8 +326,8 @@ class IOHandlerlibyt(BaseIOHandler):
 
             # Call libyt RMA
             mylog.debug("Getting nonlocal data through libyt ...")
-            nonlocal_data = self.libyt.get_attr_remote(ptf_c, ptf_c.keys(), to_prepare, len(to_prepare),
-                                                       nonlocal_id, nonlocal_rank, len(nonlocal_id))
+            nonlocal_data = self.libyt.get_particle_remote(ptf_c, ptf_c.keys(), to_prepare, len(to_prepare),
+                                                           nonlocal_id, nonlocal_rank, len(nonlocal_id))
         else:
             nonlocal_data = None
 
