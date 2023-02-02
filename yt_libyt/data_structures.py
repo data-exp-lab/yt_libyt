@@ -98,13 +98,12 @@ class libytHierarchy(GridIndex):
         # derive max_level
         self.max_level = self.grid_levels.max()
 
-        # derive grid_particle_count from particle_count_list.
-        # particle_count_list is created only if there is particles.
-        try:
-            self.particle_count_list = hierarchy["particle_count_list"]
-            self.grid_particle_count = np.sum(self.particle_count_list, axis=1)
+        # derive grid_particle_count from par_count_list.
+        # par_count_list is created only if there is particles.
+        if "par_count_list" in hierarchy:
+            self.grid_particle_count = np.sum(hierarchy["par_count_list"], axis=1)
             self.grid_particle_count = self.grid_particle_count[..., np.newaxis]
-        except:
+        else:
             self.grid_particle_count = np.zeros((self.num_grids, 1), "int32")
 
         # Indicates which MPI rank it belongs to.

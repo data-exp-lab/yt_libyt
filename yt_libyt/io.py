@@ -57,7 +57,7 @@ class IOHandlerlibyt(BaseIOHandler):
 
                     # Get particle count in ptype, continue if it is zero
                     index_label = self.param_yt['particle_list'][ptype]["label"]
-                    if self.hierarchy["particle_count_list"][g.id][index_label] == 0:
+                    if self.hierarchy["par_count_list"][g.id][index_label] == 0:
                         continue
 
                     coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
@@ -102,7 +102,7 @@ class IOHandlerlibyt(BaseIOHandler):
 
                     # get particle count in ptype, continue if it is zero
                     index_label = self.param_yt['particle_list'][ptype]["label"]
-                    if self.hierarchy["particle_count_list"][g.id][index_label] == 0:
+                    if self.hierarchy["par_count_list"][g.id][index_label] == 0:
                         continue
 
                     # fetch the position x/y/z of particle by ptype
