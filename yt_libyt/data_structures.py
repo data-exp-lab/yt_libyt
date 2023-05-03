@@ -31,6 +31,8 @@ from yt.utilities.parameter_file_storage import output_type_registry
 from yt.geometry.geometry_handler import YTDataChunk
 
 class libytGrid(AMRGridPatch):
+    # We will set _id_offset to libyt.param_yt["index_offset"]
+    # when initializing libytHierarchy
     _id_offset = 0
 
     def __init__(self, id, index, level):
@@ -59,6 +61,8 @@ class libytHierarchy(GridIndex):
         self.directory = os.getcwd()
         self.float_type = 'float64'
         self.libyt = self.dataset.libyt
+
+        libytGrid._id_offset = self.libyt.param_yt["index_offset"]
 
         GridIndex.__init__(self, ds, dataset_type)
 
@@ -111,22 +115,24 @@ class libytHierarchy(GridIndex):
 
         # allocate all grid objects
         self.grids = np.empty(self.num_grids, dtype='object')
-        for i in range(self.num_grids):
-            self.grids[i] = self.grid(i, self, self.grid_levels.flat[i])
-            self.grids[i].MPI_rank = self.proc_num[i, 0]
-            self.grids[i].filename = "MPI_Rank_%07i" % (self.proc_num[i, 0])
+        index_offset = self.libyt.param_yt["index_offset"]
+        for index in range(self.num_grids):
+            self.grids[index] = self.grid(index + index_offset, self, self.grid_levels.flat[index])
+            self.grids[index].MPI_rank = self.proc_num[index, 0]
+            self.grids[index].filename = "MPI_Rank_%07i" % (self.proc_num[index, 0])
 
     def _populate_grid_objects(self):
         # must flat it since 'grid_parent_id' has the dimension [num_grids][1]
         parent_list = self.libyt.hierarchy['grid_parent_id'].flat
+        index_offset = self.libyt.param_yt["index_offset"]
 
-        for gid in range(self.num_grids):
-            grid = self.grids[gid]
-            parent_id = parent_list[gid]
+        for index in range(self.num_grids):
+            grid = self.grids[index]
+            parent_id = parent_list[index]
 
-            # set up the parent-children relationship
-            if parent_id >= 0:
-                parent_grid = self.grids[parent_id]
+            # set up the parent-children relationship if parent grid exist
+            if parent_id >= index_offset:
+                parent_grid = self.grids[parent_id - index_offset]
                 grid.Parent = parent_grid
                 parent_grid.Children.append(grid)
 
