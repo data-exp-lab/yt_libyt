@@ -49,6 +49,9 @@ class IOHandlerlibyt(BaseIOHandler):
         # Get remote data.
         nonlocal_data = self._prepare_remote_particle_from_libyt(chunks, ptf_new)
 
+        # Get index offset
+        index_offset = self.param_yt["index_offset"]
+
         for chunk in chunks:
             for g in chunk.objs:
 
@@ -57,7 +60,7 @@ class IOHandlerlibyt(BaseIOHandler):
 
                     # Get particle count in ptype, continue if it is zero
                     index_label = self.param_yt['particle_list'][ptype]["label"]
-                    if self.hierarchy["par_count_list"][g.id][index_label] == 0:
+                    if self.hierarchy["par_count_list"][g.id - index_offset][index_label] == 0:
                         continue
 
                     coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
@@ -94,6 +97,9 @@ class IOHandlerlibyt(BaseIOHandler):
         # Get remote data.
         nonlocal_data = self._prepare_remote_particle_from_libyt(chunks, ptf_new)
 
+        # Get index offset
+        index_offset = self.param_yt["index_offset"]
+
         for chunk in chunks:
             for g in chunk.objs:
 
@@ -102,7 +108,7 @@ class IOHandlerlibyt(BaseIOHandler):
 
                     # get particle count in ptype, continue if it is zero
                     index_label = self.param_yt['particle_list'][ptype]["label"]
-                    if self.hierarchy["par_count_list"][g.id][index_label] == 0:
+                    if self.hierarchy["par_count_list"][g.id - index_offset][index_label] == 0:
                         continue
 
                     # fetch the position x/y/z of particle by ptype
@@ -257,9 +263,10 @@ class IOHandlerlibyt(BaseIOHandler):
         comm.Gatherv(sendbuf=sendbuf, recvbuf=(recvbuf, sendcounts), root=0)
         comm.Bcast(recvbuf, root=0)
 
-        # Get grid id that this rank has to prepare.
+        # Get grid id that this rank has to prepare, grid id doesn't have to be 0-indexed
+        index_offset = self.param_yt["index_offset"]
         proc_num = self.hierarchy["proc_num"][:, 0]
-        index = np.argwhere(proc_num[recvbuf] == self.myrank)
+        index = np.argwhere(proc_num[recvbuf - index_offset] == self.myrank)
         to_prepare = list(np.unique(recvbuf[index]))
 
         # Determine whether we should call for libyt C extend method for RMA operation.
@@ -301,21 +308,23 @@ class IOHandlerlibyt(BaseIOHandler):
         # Distinguish local and non-local grid, and what should this rank prepared.
         rma, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
 
-        # Filter out those who really has particles in their grid.
+        # Filter out those who really has particles in their grid. Grid id doesn't have to be 0-indexed.
+        # Since we aren't sure how many particle types will yt access, we check total particle counts.
+        index_offset = self.param_yt["index_offset"]
         par_count = self.ds.index.grid_particle_count[:, 0]
 
-        index = np.argwhere(par_count[to_prepare] > 0)
         to_prepare = np.asarray(to_prepare)
+        index = np.argwhere(par_count[to_prepare - index_offset] > 0)
         to_prepare = list(to_prepare[index].flatten())
 
-        index = np.argwhere(par_count[nonlocal_id] > 0)
         nonlocal_id = np.asarray(nonlocal_id)
+        index = np.argwhere(par_count[nonlocal_id - index_offset] > 0)
         nonlocal_id = list(nonlocal_id[index].flatten())
         nonlocal_rank = np.asarray(nonlocal_rank)
         nonlocal_rank = list(nonlocal_rank[index].flatten())
 
         if rma is True:
-            # String inside ptf should be encode in UTF-8, and attributes should be in list obj.
+            # String inside ptf should be encoded in UTF-8, and attributes should be in list obj.
             ptf_c = {}
             for key in ptf.keys():
                 attr_list = []
