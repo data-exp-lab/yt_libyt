@@ -308,22 +308,26 @@ class IOHandlerlibyt(BaseIOHandler):
         # Distinguish local and non-local grid, and what should this rank prepared.
         rma, to_prepare, nonlocal_id, nonlocal_rank = self._distinguish_nonlocal_grids(chunks)
 
-        # Filter out those who really has particles in their grid. Grid id doesn't have to be 0-indexed.
-        # Since we aren't sure how many particle types will yt access, we check total particle counts.
-        index_offset = self.param_yt["index_offset"]
-        par_count = self.ds.index.grid_particle_count[:, 0]
-
-        to_prepare = np.asarray(to_prepare)
-        index = np.argwhere(par_count[to_prepare - index_offset] > 0)
-        to_prepare = list(to_prepare[index].flatten())
-
-        nonlocal_id = np.asarray(nonlocal_id)
-        index = np.argwhere(par_count[nonlocal_id - index_offset] > 0)
-        nonlocal_id = list(nonlocal_id[index].flatten())
-        nonlocal_rank = np.asarray(nonlocal_rank)
-        nonlocal_rank = list(nonlocal_rank[index].flatten())
-
         if rma is True:
+            # Filter out those who really has particles in their grid. Grid id doesn't have to be 0-indexed.
+            # Since we aren't sure how many particle types will yt access, we check total particle counts.
+            index_offset = self.param_yt["index_offset"]
+            par_count = self.ds.index.grid_particle_count[:, 0]
+
+            # If to_prepare is empty list, we don't need to filter out grids without particles
+            if len(to_prepare) != 0:
+                to_prepare = np.asarray(to_prepare)
+                index = np.argwhere(par_count[to_prepare - index_offset] > 0)
+                to_prepare = list(to_prepare[index].flatten())
+
+            # If nonlocal_id / nonlocal_rank is empty list, we don't need to filter out grids without particles
+            if len(nonlocal_id) != 0:
+                nonlocal_id = np.asarray(nonlocal_id)
+                index = np.argwhere(par_count[nonlocal_id - index_offset] > 0)
+                nonlocal_id = list(nonlocal_id[index].flatten())
+                nonlocal_rank = np.asarray(nonlocal_rank)
+                nonlocal_rank = list(nonlocal_rank[index].flatten())
+
             # String inside ptf should be encoded in UTF-8, and attributes should be in list obj.
             ptf_c = {}
             for key in ptf.keys():
