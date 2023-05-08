@@ -20,12 +20,12 @@ from yt.funcs import mylog
 from yt.geometry.selection_routines import AlwaysSelector
 
 
-class IOHandlerlibyt(BaseIOHandler):
+class libytIOHandler(BaseIOHandler):
     _particle_reader = False
     _dataset_type    = "libyt"
 
     def __init__(self, ds):
-        super(IOHandlerlibyt, self).__init__(ds)
+        super(libytIOHandler, self).__init__(ds)
         import libyt
         self.libyt = libyt
         self.ds = ds
@@ -33,7 +33,7 @@ class IOHandlerlibyt(BaseIOHandler):
         self.param_yt = libyt.param_yt
         self.hierarchy = libyt.hierarchy
         self._field_dtype = "float64"
-        self.myrank = IOHandlerlibyt._get_my_rank()
+        self.myrank = libytIOHandler._get_my_rank()
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
@@ -197,7 +197,7 @@ class IOHandlerlibyt(BaseIOHandler):
         #TODO: Allocate buffer for rv, don't make rv point directly to simulation data buffer.
         # if selector.__class__.__name__ == "GridSelector":
         #     if not (len(chunks) == len(chunks[0].objs) == 1):
-        #         raise RuntimeError("class IOHandlerlibyt, def _read_fluid_selection, selector == GridSelector, "
+        #         raise RuntimeError("class libytIOHandler, def _read_fluid_selection, selector == GridSelector, "
         #                            "chunk to be read not equal to 1.")
         #     g = chunks[0].objs[0]
         #     for ftype, fname in fields:

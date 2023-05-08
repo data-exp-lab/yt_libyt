@@ -22,7 +22,7 @@ from .fields import \
       libytFieldInfo
 
 from .io import \
-      IOHandlerlibyt
+      libytIOHandler
 
 ### NOT SUPPORTED YET
 #from . import tests
