@@ -242,7 +242,7 @@ class libytDataset(Dataset):
         mylog.info('libyt: FieldInfo subclass = %s' % self._field_info_class)
         mylog.info('libyt: fluid type         = %s' % self._code_frontend)
 
-        Dataset.__init__(self, "libytHasNoParameterFile", self._dataset_type,
+        Dataset.__init__(self, self.libyt.param_yt["fig_basename"], self._dataset_type,
                          units_override=units_override,
                          unit_system=unit_system)
 
@@ -262,7 +262,6 @@ class libytDataset(Dataset):
 
         # yt-specific parameters
         param_yt = self.libyt.param_yt
-        self.basename = param_yt['fig_basename']
         self.current_time = param_yt['current_time']
         self.dimensionality = param_yt['dimensionality']
         self.refine_by = param_yt['refine_by']
