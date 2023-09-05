@@ -65,9 +65,20 @@ class libytIOHandler(BaseIOHandler):
 
                     coor_label = self.param_yt['particle_list'][ptype]['particle_coor_label']
                     if g.MPI_rank == self.myrank:
-                        x = self.libyt.get_particle(g.id, ptype, coor_label[0])
-                        y = self.libyt.get_particle(g.id, ptype, coor_label[1])
-                        z = self.libyt.get_particle(g.id, ptype, coor_label[2])
+                        try:
+                            x = self.libyt.particle_data[g.id][ptype][coor_label[0]]
+                        except:
+                            x = self.libyt.get_particle(g.id, ptype, coor_label[0])
+
+                        try:
+                            y = self.libyt.particle_data[g.id][ptype][coor_label[1]]
+                        except:
+                            y = self.libyt.get_particle(g.id, ptype, coor_label[1])
+
+                        try:
+                            z = self.libyt.particle_data[g.id][ptype][coor_label[2]]
+                        except:
+                            z = self.libyt.get_particle(g.id, ptype, coor_label[2])
                     else:
                         x = nonlocal_data[g.id][ptype][coor_label[0]]
                         y = nonlocal_data[g.id][ptype][coor_label[1]]
@@ -116,9 +127,20 @@ class libytIOHandler(BaseIOHandler):
                     if None in coor_label:
                         raise ValueError("Particle label representing postion X/Y/Z not set!")
                     if g.MPI_rank == self.myrank:
-                        x = self.libyt.get_particle(g.id, ptype, coor_label[0])
-                        y = self.libyt.get_particle(g.id, ptype, coor_label[1])
-                        z = self.libyt.get_particle(g.id, ptype, coor_label[2])
+                        try:
+                            x = self.libyt.particle_data[g.id][ptype][coor_label[0]]
+                        except:
+                            x = self.libyt.get_particle(g.id, ptype, coor_label[0])
+
+                        try:
+                            y = self.libyt.particle_data[g.id][ptype][coor_label[1]]
+                        except:
+                            y = self.libyt.get_particle(g.id, ptype, coor_label[1])
+
+                        try:
+                            z = self.libyt.particle_data[g.id][ptype][coor_label[2]]
+                        except:
+                            z = self.libyt.get_particle(g.id, ptype, coor_label[2])
                     else:
                         x = nonlocal_data[g.id][ptype][coor_label[0]]
                         y = nonlocal_data[g.id][ptype][coor_label[1]]
@@ -135,7 +157,10 @@ class libytIOHandler(BaseIOHandler):
 
                     for field in ptf[ptype]:
                         if g.MPI_rank == self.myrank:
-                            data = self.libyt.get_particle(g.id, ptype, field)
+                            try:
+                                data = self.libyt.particle_data[g.id][ptype][field]
+                            except:
+                                data = self.libyt.get_particle(g.id, ptype, field)
                         else:
                             data = nonlocal_data[g.id][ptype][field]
 
