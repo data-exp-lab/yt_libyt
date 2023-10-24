@@ -19,7 +19,6 @@ import time
 import numpy as np
 
 from collections import defaultdict
-import inspect
 
 from yt.funcs import mylog, setdefaultattr
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
@@ -27,7 +26,8 @@ from yt.geometry.grid_geometry_handler import GridIndex
 from yt.data_objects.static_output import Dataset
 from .fields import libytFieldInfo
 
-from yt.utilities.parameter_file_storage import output_type_registry
+import yt.frontends.api
+import importlib
 from yt.geometry.geometry_handler import YTDataChunk
 
 class libytGrid(AMRGridPatch):
@@ -177,14 +177,19 @@ class libytDataset(Dataset):
         # get the target frontend (precisely speaking, the target Dataset subclass)
         # and set fluid type and fields accordingly
         self._code_frontend = self.libyt.param_yt['frontend'].lower()
-        for name, cls in output_type_registry.items():
-            if self._code_frontend == name[0:-len('Dataset')].lower():
-                self._field_info_class = cls._field_info_class
+        for name in yt.frontends.api._frontends:
+            if self._code_frontend == name.lower():
+                # Import frontend dataset
+                frontend = importlib.import_module("yt.frontends.{}.api".format(name.lower()))
+                frontend_dataset = getattr(frontend, "{}Dataset".format(name.upper()))
+
+                # Borrow frontend's field info
+                self._field_info_class = frontend_dataset._field_info_class
                 self.fluid_types += (self._code_frontend,)
 
-                # Read from param_yt['field_list'] and update the cls._field_info_class.
-                # This action accumulates in each round, cause we change the class
-                # static variable in cls._field_info_class.
+                # Read from param_yt['field_list'] and update the XXXDataset._field_info_class.
+                # This action accumulates in each round, because we change the class
+                # static variable in XXXDataset._field_info_class.
                 try:
                     field_list = self.libyt.param_yt['field_list']
                     known_other_fields = list(self._field_info_class.known_other_fields)
@@ -209,7 +214,7 @@ class libytDataset(Dataset):
                 except:
                     mylog.debug("No self.libyt.param_yt['field_list'].")
 
-                # Read from param_yt['particle_list'] and update the cls._field_info_class.
+                # Read from param_yt['particle_list'] and update XXXDataset._field_info_class.
                 try:
                     particle_list = self.libyt.param_yt['particle_list']
                     known_particle_fields = list(self._field_info_class.known_particle_fields)
@@ -235,7 +240,7 @@ class libytDataset(Dataset):
                 break
         else:
             # We assume that user's code has corresponding yt frontend, if not, terminate yt.
-            raise NotImplementedError("libyt set frontend = %s, cannot find the code frontend [%sDataset] in yt." %
+            raise NotImplementedError("libyt set frontend = %s, cannot find the code frontend [ %sDataset ] in yt." %
                                       (self.libyt.param_yt['frontend'], self.libyt.param_yt['frontend'].upper()))
 
         mylog.info('libyt: code dataset       = %s' % "libytDataset")
