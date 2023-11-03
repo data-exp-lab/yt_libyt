@@ -30,6 +30,7 @@ import yt.frontends.api
 import importlib
 from yt.geometry.geometry_handler import YTDataChunk
 
+
 class libytGrid(AMRGridPatch):
     # We will set _id_offset to libyt.param_yt["index_offset"]
     # when initializing libytHierarchy
@@ -47,7 +48,7 @@ class libytGrid(AMRGridPatch):
         self.Level = level
 
     def __repr__(self):
-        return 'libytGrid_%09i (dimension = %s)' % (self.id, self.ActiveDimensions)
+        return "libytGrid_%09i (dimension = %s)" % (self.id, self.ActiveDimensions)
 
 
 class libytHierarchy(GridIndex):
@@ -55,11 +56,11 @@ class libytHierarchy(GridIndex):
     libyt = None
     # _preload_implemented = True # Not sure about this option
 
-    def __init__(self, ds, dataset_type='libyt'):
+    def __init__(self, ds, dataset_type="libyt"):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
         self.directory = os.getcwd()
-        self.float_type = 'float64'
+        self.float_type = "float64"
         self.libyt = self.dataset.libyt
 
         libytGrid._id_offset = self.libyt.param_yt["index_offset"]
@@ -68,21 +69,21 @@ class libytHierarchy(GridIndex):
 
     def _detect_output_fields(self):
         try:
-            field_list = self.libyt.param_yt['field_list']
+            field_list = self.libyt.param_yt["field_list"]
             self.field_list = [(self.dataset._code_frontend, v) for v in field_list.keys()]
         except:
             mylog.debug("No field.")
 
         try:
-            particle_list = self.libyt.param_yt['particle_list']
+            particle_list = self.libyt.param_yt["particle_list"]
             for ptype in particle_list.keys():
-                attribute = particle_list[ptype]['attribute']
+                attribute = particle_list[ptype]["attribute"]
                 self.field_list += [(ptype, particle) for particle in attribute.keys()]
         except:
             mylog.debug("No particle.")
 
     def _count_grids(self):
-        self.num_grids = self.libyt.param_yt['num_grids']
+        self.num_grids = self.libyt.param_yt["num_grids"]
 
     def _initialize_grid_arrays(self):
         # We don't need to initialize a new buffer for hierarchy,
@@ -111,10 +112,10 @@ class libytHierarchy(GridIndex):
             self.grid_particle_count = np.zeros((self.num_grids, 1), "int32")
 
         # Indicates which MPI rank it belongs to.
-        self.proc_num = hierarchy['proc_num']
+        self.proc_num = hierarchy["proc_num"]
 
         # allocate all grid objects
-        self.grids = np.empty(self.num_grids, dtype='object')
+        self.grids = np.empty(self.num_grids, dtype="object")
         index_offset = self.libyt.param_yt["index_offset"]
         for index in range(self.num_grids):
             self.grids[index] = self.grid(index + index_offset, self, self.grid_levels.flat[index])
@@ -123,7 +124,7 @@ class libytHierarchy(GridIndex):
 
     def _populate_grid_objects(self):
         # must flat it since 'grid_parent_id' has the dimension [num_grids][1]
-        parent_list = self.libyt.hierarchy['grid_parent_id'].flat
+        parent_list = self.libyt.hierarchy["grid_parent_id"].flat
         index_offset = self.libyt.param_yt["index_offset"]
 
         for index in range(self.num_grids):
@@ -159,14 +160,13 @@ class libytDataset(Dataset):
     _index_class = libytHierarchy
     _field_info_class = libytFieldInfo
     # _field_info_base_class = object
-    _dataset_type = 'libyt'  # must set here since __init__() does not know dataset_type when calling it
+    _dataset_type = (
+        "libyt"  # must set here since __init__() does not know dataset_type when calling it
+    )
     _debug = False  # debug mode for libyt (not supported yet), some checks are in libyt C-library. Cannot open yet. Future use.
     libyt = None
 
-    def __init__(self,
-                 units_override=None,
-                 unit_system="cgs"):
-
+    def __init__(self, units_override=None, unit_system="cgs"):
         # nothing to do if initialization has been done
         if self.libyt is not None:
             return
@@ -176,7 +176,7 @@ class libytDataset(Dataset):
 
         # get the target frontend (precisely speaking, the target Dataset subclass)
         # and set fluid type and fields accordingly
-        self._code_frontend = self.libyt.param_yt['frontend'].lower()
+        self._code_frontend = self.libyt.param_yt["frontend"].lower()
         for name in yt.frontends.api._frontends:
             if self._code_frontend == name.lower():
                 # Import frontend dataset
@@ -191,7 +191,7 @@ class libytDataset(Dataset):
                 # This action accumulates in each round, because we change the class
                 # static variable in XXXDataset._field_info_class.
                 try:
-                    field_list = self.libyt.param_yt['field_list']
+                    field_list = self.libyt.param_yt["field_list"]
                     known_other_fields = list(self._field_info_class.known_other_fields)
                     for field_name in field_list.keys():
                         # Step1 : Check if field_name is already inside known_other_fields
@@ -201,13 +201,15 @@ class libytDataset(Dataset):
                                 field_exist = True
                                 # Step2 : If field_name exists, append alias names one by one if it's not in the name
                                 # list yet
-                                for name_alias in field_list[field_name]['attribute'][1]:
+                                for name_alias in field_list[field_name]["attribute"][1]:
                                     if name_alias not in known_other_fields[index][1][1]:
                                         known_other_fields[index][1][1].append(name_alias)
                                 break
                         # Step2 : If field_name doesn't exist in known_other_fields, add a new field to add_fields list
                         if field_exist is False:
-                            known_other_fields.append((field_name, tuple(field_list[field_name]['attribute'])))
+                            known_other_fields.append(
+                                (field_name, tuple(field_list[field_name]["attribute"]))
+                            )
 
                     # Step3 : convert it back to tuple
                     self._field_info_class.known_other_fields = tuple(known_other_fields)
@@ -216,7 +218,7 @@ class libytDataset(Dataset):
 
                 # Read from param_yt['particle_list'] and update XXXDataset._field_info_class.
                 try:
-                    particle_list = self.libyt.param_yt['particle_list']
+                    particle_list = self.libyt.param_yt["particle_list"]
                     known_particle_fields = list(self._field_info_class.known_particle_fields)
                     for ptype in particle_list.keys():
                         attribute = particle_list[ptype]["attribute"]
@@ -240,23 +242,31 @@ class libytDataset(Dataset):
                 break
         else:
             # We assume that user's code has corresponding yt frontend, if not, terminate yt.
-            raise NotImplementedError("libyt set frontend = %s, cannot find the code frontend [ %sDataset ] in yt." %
-                                      (self.libyt.param_yt['frontend'], self.libyt.param_yt['frontend'].upper()))
+            raise NotImplementedError(
+                "libyt set frontend = %s, cannot find the code frontend [ %sDataset ] in yt."
+                % (self.libyt.param_yt["frontend"], self.libyt.param_yt["frontend"].upper())
+            )
 
-        mylog.info('libyt: code dataset       = %s' % "libytDataset")
-        mylog.info('libyt: FieldInfo subclass = %s' % self._field_info_class)
-        mylog.info('libyt: fluid type         = %s' % self._code_frontend)
+        mylog.info("libyt: code dataset       = %s" % "libytDataset")
+        mylog.info("libyt: FieldInfo subclass = %s" % self._field_info_class)
+        mylog.info("libyt: fluid type         = %s" % self._code_frontend)
 
-        Dataset.__init__(self, self.libyt.param_yt["fig_basename"], self._dataset_type,
-                         units_override=units_override,
-                         unit_system=unit_system)
+        Dataset.__init__(
+            self,
+            self.libyt.param_yt["fig_basename"],
+            self._dataset_type,
+            units_override=units_override,
+            unit_system=unit_system,
+        )
 
     def _set_code_unit_attributes(self):
         # currently libyt assumes cgs
-        setdefaultattr(self, 'length_unit', self.quan(self.libyt.param_yt['length_unit'], 'cm'))
-        setdefaultattr(self, 'mass_unit', self.quan(self.libyt.param_yt['mass_unit'], 'g'))
-        setdefaultattr(self, 'time_unit', self.quan(self.libyt.param_yt['time_unit'], 's'))
-        setdefaultattr(self, 'magnetic_unit', self.quan(self.libyt.param_yt['magnetic_unit'], 'gauss'))
+        setdefaultattr(self, "length_unit", self.quan(self.libyt.param_yt["length_unit"], "cm"))
+        setdefaultattr(self, "mass_unit", self.quan(self.libyt.param_yt["mass_unit"], "g"))
+        setdefaultattr(self, "time_unit", self.quan(self.libyt.param_yt["time_unit"], "s"))
+        setdefaultattr(
+            self, "magnetic_unit", self.quan(self.libyt.param_yt["magnetic_unit"], "gauss")
+        )
 
     def _parse_parameter_file(self):
         # dataset identifier
@@ -267,36 +277,49 @@ class libytDataset(Dataset):
 
         # yt-specific parameters
         param_yt = self.libyt.param_yt
-        self.current_time = param_yt['current_time']
-        self.dimensionality = param_yt['dimensionality']
-        self.refine_by = param_yt['refine_by']
-        self.cosmological_simulation = param_yt['cosmological_simulation']
-        self.current_redshift = param_yt['current_redshift']
-        self.omega_matter = param_yt['omega_matter']
-        self.omega_lambda = param_yt['omega_lambda']
-        self.hubble_constant = param_yt['hubble_constant']
+        self.current_time = param_yt["current_time"]
+        self.dimensionality = param_yt["dimensionality"]
+        self.refine_by = param_yt["refine_by"]
+        self.cosmological_simulation = param_yt["cosmological_simulation"]
+        self.current_redshift = param_yt["current_redshift"]
+        self.omega_matter = param_yt["omega_matter"]
+        self.omega_lambda = param_yt["omega_lambda"]
+        self.hubble_constant = param_yt["hubble_constant"]
 
         # vectors are stored as tuples in libyt and must be converted to NumPy arrays
-        self.domain_left_edge = np.asarray(param_yt['domain_left_edge'])
-        self.domain_right_edge = np.asarray(param_yt['domain_right_edge'])
-        self.domain_dimensions = np.asarray(param_yt['domain_dimensions'])
-        self._periodicity = (bool(param_yt['periodicity'][0] == 1),
-                             bool(param_yt['periodicity'][1] == 1),
-                             bool(param_yt['periodicity'][2] == 1))
+        self.domain_left_edge = np.asarray(param_yt["domain_left_edge"])
+        self.domain_right_edge = np.asarray(param_yt["domain_right_edge"])
+        self.domain_dimensions = np.asarray(param_yt["domain_dimensions"])
+        self._periodicity = (
+            bool(param_yt["periodicity"][0] == 1),
+            bool(param_yt["periodicity"][1] == 1),
+            bool(param_yt["periodicity"][2] == 1),
+        )
 
         # Load code specific parameters
         for key in self.libyt.param_user.keys():
             if hasattr(self, key):
-                mylog.info("Overwrite existing attribute self.%s = %s in class libytDataset", key, getattr(self, key))
+                mylog.info(
+                    "Overwrite existing attribute self.%s = %s in class libytDataset",
+                    key,
+                    getattr(self, key),
+                )
             try:
                 setattr(self, key, self.libyt.param_user[key])
-                mylog.info("Set attribute self.%s = %s in class libytDataset.", key, self.libyt.param_user[key])
+                mylog.info(
+                    "Set attribute self.%s = %s in class libytDataset.",
+                    key,
+                    self.libyt.param_user[key],
+                )
             except:
-                mylog.warning("Cannot add new attribute self.%s = %s", key, self.libyt.param_user[key])
+                mylog.warning(
+                    "Cannot add new attribute self.%s = %s", key, self.libyt.param_user[key]
+                )
 
     @staticmethod
     def _obtain_libyt():
         import libyt
+
         return libyt
 
     @classmethod
