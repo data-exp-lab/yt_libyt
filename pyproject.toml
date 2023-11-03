@@ -1,8 +1,12 @@
-[tool.black]
-line-length = 88
-target-version = ['py37']
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
 
-[tool.isort]
-profile = "black"
-combine_as_imports = true
-skip =  ["venv", "benchmarks"]
+#[tool.black]
+#line-length = 88
+#target-version = ['py37']
+#
+#[tool.isort]
+#profile = "black"
+#combine_as_imports = true
+#skip =  ["venv", "benchmarks"]
