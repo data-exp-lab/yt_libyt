@@ -1,5 +1,8 @@
-import yt_libyt
 import pytest
+
+
+def test_import():
+    import yt_libyt
 
 
 def test_always_pass():
