@@ -68,19 +68,19 @@ class libytHierarchy(GridIndex):
         GridIndex.__init__(self, ds, dataset_type)
 
     def _detect_output_fields(self):
-        try:
+        if "field_list" in self.libyt.param_yt:
             field_list = self.libyt.param_yt["field_list"]
-            self.field_list = [(self.dataset._code_frontend, v) for v in field_list.keys()]
-        except:
-            mylog.debug("No field.")
+            self.field_list = [(self.libyt.param_yt["frontend"].lower(), v) for v in field_list.keys()]
+        else:
+            mylog.debug("No field list \"libyt.param_yt['field_list']\".")
 
-        try:
+        if "particle_list" in self.libyt.param_yt:
             particle_list = self.libyt.param_yt["particle_list"]
             for ptype in particle_list.keys():
                 attribute = particle_list[ptype]["attribute"]
                 self.field_list += [(ptype, particle) for particle in attribute.keys()]
-        except:
-            mylog.debug("No particle.")
+        else:
+            mylog.debug("No particle list \"libyt.param_yt['particle_list']\".")
 
     def _count_grids(self):
         self.num_grids = self.libyt.param_yt["num_grids"]
@@ -177,6 +177,7 @@ class libytDataset(Dataset):
         # get the target frontend (precisely speaking, the target Dataset subclass)
         # and set fluid type and fields accordingly
         self._code_frontend = self.libyt.param_yt["frontend"].lower()
+        found_frontend = False
         for name in yt.frontends.api._frontends:
             if self._code_frontend == name.lower():
                 # Import frontend dataset
@@ -186,11 +187,12 @@ class libytDataset(Dataset):
                 # Borrow frontend's field info
                 self._field_info_class = frontend_dataset._field_info_class
                 self.fluid_types += (self._code_frontend,)
+                found_frontend = True
 
                 # Read from param_yt['field_list'] and update the XXXDataset._field_info_class.
                 # This action accumulates in each round, because we change the class
                 # static variable in XXXDataset._field_info_class.
-                try:
+                if "field_list" in self.libyt.param_yt:
                     field_list = self.libyt.param_yt["field_list"]
                     known_other_fields = list(self._field_info_class.known_other_fields)
                     for field_name in field_list.keys():
@@ -213,11 +215,11 @@ class libytDataset(Dataset):
 
                     # Step3 : convert it back to tuple
                     self._field_info_class.known_other_fields = tuple(known_other_fields)
-                except:
+                else:
                     mylog.debug("No self.libyt.param_yt['field_list'].")
 
                 # Read from param_yt['particle_list'] and update XXXDataset._field_info_class.
-                try:
+                if "particle_list" in self.libyt.param_yt:
                     particle_list = self.libyt.param_yt["particle_list"]
                     known_particle_fields = list(self._field_info_class.known_particle_fields)
                     for ptype in particle_list.keys():
@@ -236,11 +238,11 @@ class libytDataset(Dataset):
                                 known_particle_fields.append((particle, tuple(attribute[particle])))
 
                     self._field_info_class.known_particle_fields = tuple(known_particle_fields)
-                except:
+                else:
                     mylog.debug("No self.libyt.param_yt['particle_list'].")
 
                 break
-        else:
+        if found_frontend is False:
             # We assume that user's code has corresponding yt frontend, if not, terminate yt.
             raise NotImplementedError(
                 "libyt set frontend = %s, cannot find the code frontend [ %sDataset ] in yt."
