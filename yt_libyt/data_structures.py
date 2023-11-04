@@ -306,17 +306,13 @@ class libytDataset(Dataset):
                     key,
                     getattr(self, key),
                 )
-            try:
-                setattr(self, key, self.libyt.param_user[key])
-                mylog.info(
-                    "Set attribute self.%s = %s in class libytDataset.",
-                    key,
-                    self.libyt.param_user[key],
-                )
-            except:
-                mylog.warning(
-                    "Cannot add new attribute self.%s = %s", key, self.libyt.param_user[key]
-                )
+
+            setattr(self, key, self.libyt.param_user[key])
+            mylog.info(
+                "Set attribute self.%s = %s in class libytDataset.",
+                key,
+                self.libyt.param_user[key],
+            )
 
     @staticmethod
     def _obtain_libyt():
