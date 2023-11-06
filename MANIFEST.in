@@ -5,6 +5,7 @@ include LICENSE
 include README.rst
 
 graft tests
+graft yt_libyt
 recursive-exclude * __pycache__
 recursive-exclude * *.py[cod]
 
