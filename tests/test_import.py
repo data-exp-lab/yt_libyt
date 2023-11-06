@@ -6,7 +6,7 @@ def test_import():
 
     api_list = ["libytDataset", "libytGrid", "libytHierarchy", "libytFieldInfo", "libytIOHandler"]
     for attr in api_list:
-        assert hasattr(yt_libyt, attr) is True, "No class named %s in yt_libyt" % attr
+        assert hasattr(yt_libyt, attr) is True, f"No class named {attr} in yt_libyt"
 
 
 def test_always_pass():

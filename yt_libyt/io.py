@@ -510,7 +510,7 @@ class libytIOHandler(BaseIOHandler):
             # Since we only supports "cell-centered", "face-centered", "derived_func" tags for now
             # Raise an error if enter this block.
             raise ValueError(
-                "libyt does not have field_type [ %s ]" % (field_list[fname]["field_type"])
+                f"libyt does not have field_type [ {field_list[fname]['field_type']} ]"
             )
 
         # Swap axes or not, then return

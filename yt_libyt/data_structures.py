@@ -182,8 +182,8 @@ class libytDataset(Dataset):
         for name in yt.frontends.api._frontends:
             if self._code_frontend == name.lower():
                 # Import frontend dataset
-                frontend = importlib.import_module("yt.frontends.{}.api".format(name.lower()))
-                frontend_dataset = getattr(frontend, "{}Dataset".format(name.upper()))
+                frontend = importlib.import_module(f"yt.frontends.{name.lower()}.api")
+                frontend_dataset = getattr(frontend, f"{name.upper()}Dataset")
 
                 # Borrow frontend's field info
                 self._field_info_class = frontend_dataset._field_info_class
@@ -250,9 +250,9 @@ class libytDataset(Dataset):
                 % (self.libyt.param_yt["frontend"], self.libyt.param_yt["frontend"].upper())
             )
 
-        mylog.info("libyt: code dataset       = %s" % "libytDataset")
-        mylog.info("libyt: FieldInfo subclass = %s" % self._field_info_class)
-        mylog.info("libyt: fluid type         = %s" % self._code_frontend)
+        mylog.info("libyt: code dataset       = libytDataset")
+        mylog.info(f"libyt: FieldInfo subclass = {self._field_info_class}")
+        mylog.info(f"libyt: fluid type         = {self._code_frontend}")
 
         Dataset.__init__(
             self,
