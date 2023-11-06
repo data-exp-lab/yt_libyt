@@ -36,5 +36,5 @@ jobs:
       - name: Upload pytest report
         uses: actions/upload-artifact@v3
         with:
-          name: pytest-report
+          name: pytest-report-${{ matrix.python.toxenv }}
           path: report.html
