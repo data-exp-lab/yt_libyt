@@ -14,10 +14,9 @@ libyt-specific IO functions
 # -----------------------------------------------------------------------------
 
 import numpy as np
-
-from yt.utilities.io_handler import BaseIOHandler
 from yt.funcs import mylog
 from yt.geometry.selection_routines import AlwaysSelector
+from yt.utilities.io_handler import BaseIOHandler
 
 
 class libytIOHandler(BaseIOHandler):

@@ -13,22 +13,21 @@ libyt-specific data structures
 # The full license is in the file COPYING.txt, distributed with this software.
 # -----------------------------------------------------------------------------
 
+import importlib
 import os
-import weakref
 import time
-import numpy as np
-
+import weakref
 from collections import defaultdict
 
-from yt.funcs import mylog, setdefaultattr
-from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
-from yt.geometry.grid_geometry_handler import GridIndex
-from yt.data_objects.static_output import Dataset
-from .fields import libytFieldInfo
-
+import numpy as np
 import yt.frontends.api
-import importlib
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
+from yt.data_objects.static_output import Dataset
+from yt.funcs import mylog, setdefaultattr
 from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.grid_geometry_handler import GridIndex
+
+from .fields import libytFieldInfo
 
 
 class libytGrid(AMRGridPatch):
