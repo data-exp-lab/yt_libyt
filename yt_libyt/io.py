@@ -50,8 +50,9 @@ class libytIOHandler(BaseIOHandler):
         # Get remote data.
         nonlocal_data = self._prepare_remote_particle_from_libyt(chunks, ptf_new)
 
-        # Get index offset
+        # Get index offset and particle data dict
         index_offset = self.param_yt["index_offset"]
+        particle_data = self.libyt.particle_data
 
         for chunk in chunks:
             for g in chunk.objs:
@@ -64,19 +65,31 @@ class libytIOHandler(BaseIOHandler):
 
                     coor_label = self.param_yt["particle_list"][ptype]["particle_coor_label"]
                     if g.MPI_rank == self.myrank:
-                        try:
-                            x = self.libyt.particle_data[g.id][ptype][coor_label[0]]
-                        except:
+                        if (
+                            g.id in particle_data
+                            and ptype in particle_data[g.id]
+                            and coor_label[0] in particle_data[g.id][ptype]
+                        ):
+                            x = particle_data[g.id][ptype][coor_label[0]]
+                        else:
                             x = self.libyt.get_particle(g.id, ptype, coor_label[0])
 
-                        try:
-                            y = self.libyt.particle_data[g.id][ptype][coor_label[1]]
-                        except:
+                        if (
+                            g.id in particle_data
+                            and ptype in particle_data[g.id]
+                            and coor_label[1] in particle_data[g.id][ptype]
+                        ):
+                            y = particle_data[g.id][ptype][coor_label[1]]
+                        else:
                             y = self.libyt.get_particle(g.id, ptype, coor_label[1])
 
-                        try:
-                            z = self.libyt.particle_data[g.id][ptype][coor_label[2]]
-                        except:
+                        if (
+                            g.id in particle_data
+                            and ptype in particle_data[g.id]
+                            and coor_label[2] in particle_data[g.id][ptype]
+                        ):
+                            z = particle_data[g.id][ptype][coor_label[2]]
+                        else:
                             z = self.libyt.get_particle(g.id, ptype, coor_label[2])
                     else:
                         x = nonlocal_data[g.id][ptype][coor_label[0]]
@@ -107,8 +120,9 @@ class libytIOHandler(BaseIOHandler):
         # Get remote data.
         nonlocal_data = self._prepare_remote_particle_from_libyt(chunks, ptf_new)
 
-        # Get index offset
+        # Get index offset and particle data
         index_offset = self.param_yt["index_offset"]
+        particle_data = self.libyt.particle_data
 
         for chunk in chunks:
             for g in chunk.objs:
@@ -124,19 +138,31 @@ class libytIOHandler(BaseIOHandler):
                     if None in coor_label:
                         raise ValueError("Particle label representing postion X/Y/Z not set!")
                     if g.MPI_rank == self.myrank:
-                        try:
-                            x = self.libyt.particle_data[g.id][ptype][coor_label[0]]
-                        except:
+                        if (
+                            g.id in particle_data
+                            and ptype in particle_data[g.id]
+                            and coor_label[0] in particle_data[g.id][ptype]
+                        ):
+                            x = particle_data[g.id][ptype][coor_label[0]]
+                        else:
                             x = self.libyt.get_particle(g.id, ptype, coor_label[0])
 
-                        try:
-                            y = self.libyt.particle_data[g.id][ptype][coor_label[1]]
-                        except:
+                        if (
+                            g.id in particle_data
+                            and ptype in particle_data[g.id]
+                            and coor_label[1] in particle_data[g.id][ptype]
+                        ):
+                            y = particle_data[g.id][ptype][coor_label[1]]
+                        else:
                             y = self.libyt.get_particle(g.id, ptype, coor_label[1])
 
-                        try:
-                            z = self.libyt.particle_data[g.id][ptype][coor_label[2]]
-                        except:
+                        if (
+                            g.id in particle_data
+                            and ptype in particle_data[g.id]
+                            and coor_label[2] in particle_data[g.id][ptype]
+                        ):
+                            z = particle_data[g.id][ptype][coor_label[2]]
+                        else:
                             z = self.libyt.get_particle(g.id, ptype, coor_label[2])
                     else:
                         x = nonlocal_data[g.id][ptype][coor_label[0]]
@@ -154,9 +180,13 @@ class libytIOHandler(BaseIOHandler):
 
                     for field in ptf[ptype]:
                         if g.MPI_rank == self.myrank:
-                            try:
-                                data = self.libyt.particle_data[g.id][ptype][field]
-                            except:
+                            if (
+                                g.id in particle_data
+                                and ptype in particle_data[g.id]
+                                and field in particle_data[g.id][ptype]
+                            ):
+                                data = particle_data[g.id][ptype][field]
+                            else:
                                 data = self.libyt.get_particle(g.id, ptype, field)
                         else:
                             data = nonlocal_data[g.id][ptype][field]
@@ -316,7 +346,7 @@ class libytIOHandler(BaseIOHandler):
         if rma is True:
             # Encode field name to UTF-8
             fname_list = []
-            for ftype, fname in fields:
+            for _ftype, fname in fields:
                 fname_list.append(fname.encode(encoding="UTF-8", errors="strict"))
             fname_list = sorted(set(fname_list))
 

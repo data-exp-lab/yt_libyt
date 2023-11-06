@@ -70,7 +70,9 @@ class libytHierarchy(GridIndex):
     def _detect_output_fields(self):
         if "field_list" in self.libyt.param_yt:
             field_list = self.libyt.param_yt["field_list"]
-            self.field_list = [(self.libyt.param_yt["frontend"].lower(), v) for v in field_list.keys()]
+            self.field_list = [
+                (self.libyt.param_yt["frontend"].lower(), v) for v in field_list.keys()
+            ]
         else:
             mylog.debug("No field list \"libyt.param_yt['field_list']\".")
 
