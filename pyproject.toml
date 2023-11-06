@@ -11,5 +11,5 @@ profile = "black"
 line_length = 100
 combine_as_imports = true
 skip_gitignore = true
-#skip = [""]  # the stuff that needs to skip are default settings.
+#skip = [""]  # use default settings for now
 
