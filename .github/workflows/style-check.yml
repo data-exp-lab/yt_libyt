@@ -1,0 +1,68 @@
+name: Style Check
+
+on:
+  - push
+  - pull_request
+  - workflow_dispatch
+  - workflow_call
+
+jobs:
+  fstring:
+    name: FString Formatting (flynt)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4.0.0
+        with:
+          python-version: "3.10"
+      - name: Install tox
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install tox
+      - name: Run flynt
+        run: tox -e fstring -- --fail-on-change --dry-run yt_libyt tests
+
+  sort_import:
+    name: Sort Import (isort)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4.0.0
+        with:
+          python-version: "3.10"
+      - name: Install tox
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install tox
+      - name: Run isort
+        run: tox -e sort_import -- --check --diff yt_libyt tests
+
+  format:
+    name: Code Formatting (black)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4.0.0
+        with:
+          python-version: "3.10"
+      - name: Install tox
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install tox
+      - name: Run black
+        run: tox -e format -- --check --diff yt_libyt tests
+
+  lint:
+    name: Linting (flake8)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4.0.0
+        with:
+          python-version: "3.10"
+      - name: Install tox
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install tox
+      - name: Run flake8
+        run: tox -e lint
