@@ -49,11 +49,11 @@ jobs:
           python-version: "3.10"
       - run: python -m pip install --upgrade pip
       - name: Build pure Python wheels
-        run: pip wheel -w wheels/ .
+        run: pip wheel -w build_wheels/ .
       - name: Upload builds
         uses: actions/upload-artifact@v3
         with:
-          path: ./wheels/*.whl
+          path: ./build_wheels/*.whl
 
   publish_to_pypi:
     name: Publish to PyPI
