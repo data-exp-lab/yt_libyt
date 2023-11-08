@@ -14,8 +14,7 @@ API for yt.frontends.libyt
 # -----------------------------------------------------------------------------
 """Top-level package for yt_libyt."""
 
-__version__ = "0.0.0"
-
+from ._version import __version__
 from .data_structures import libytDataset, libytGrid, libytHierarchy
 from .fields import libytFieldInfo
 from .io import libytIOHandler

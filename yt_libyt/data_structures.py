@@ -319,8 +319,11 @@ class libytDataset(Dataset):
     def _obtain_libyt():
         import libyt
 
+        from ._version import __version__
+
         libyt_version = f"{libyt.libyt_info['version'][0]}.{libyt.libyt_info['version'][1]}.{libyt.libyt_info['version'][2]}"
-        mylog.info(f"libyt version = {libyt_version}")
+        mylog.info(f"libyt    version = {libyt_version}")
+        mylog.info(f"yt_libyt version = {__version__}")
 
         return libyt
 
