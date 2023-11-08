@@ -1,6 +1,6 @@
-## Contributing
+# Contributing
 
-### Report Bugs and Submit Feedback
+## Report Bugs and Submit Feedback
 Report bugs at https://github.com/data-exp-lab/yt_libyt/issues.
 
 If you are reporting a bug, please include:
@@ -16,9 +16,9 @@ If you are proposing a feature:
 * Remember that this is a volunteer-driven project, and that contributions
   are welcome :)
 
-### Setting Up Development Environment
+## Setting Up Development Environment
 
-#### Fork and Clone the `yt_libyt` Repo
+### Fork and Clone the `yt_libyt` Repo
 
 1. Fork the `yt_libyt` repo on GitHub.
 2. Clone your fork locally:
@@ -30,7 +30,7 @@ If you are proposing a feature:
   git checkout -b name-of-your-bugfix-or-feature
   ```
 
-#### Using `tox` to Test, Do Code-Formatting, and Linting
+### Using `tox` to Test, Do Code-Formatting, and Linting
 
 We use [`tox`](https://tox.wiki/en/4.11.3/installation.html) to run:
   - Python unit test ([`pytest`](https://docs.pytest.org/en/7.4.x/))
@@ -39,32 +39,32 @@ We use [`tox`](https://tox.wiki/en/4.11.3/installation.html) to run:
   - Sort import order ([`isort`](https://pycqa.github.io/isort/index.html))
   - Linting ([`flake8`](https://flake8.pycqa.org/en/latest/))
 
-##### Python Unit test
+#### Python Unit test
 ```bash
 tox
 ```
 
-##### Converting Old String to F-String
+#### Converting Old String to F-String
 ```bash
 tox -e fstring
 ```
 
-##### Code Formatting
+#### Code Formatting
 ```bash
 tox -e format
 ```
 
-##### Sort Import Order
+#### Sort Import Order
 ```bash
 tox -e sort_import
 ```
 
-##### Linting
+#### Linting
 ```bash
 tox -e lint
 ```
 
-#### Pre-Commit
+### Pre-Commit
 
 We use [pre-commit](https://pre-commit.com/#install) to check code format and style before committing:
   - Converting old string to f-string ([`flynt`](https://github.com/ikamensh/flynt#flynt---string-formatting-converter))
