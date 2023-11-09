@@ -1,3 +1,30 @@
+[project]
+name = "yt_libyt"
+dynamic = ["version"]
+authors = [
+    "Shin-Rong Tsai <turquoisea.tsai@gmail.com>",
+    "Hsi-Yu Schive",
+    "Matthew Turk <matthewturk@gmail.com>"
+]
+description = "A yt frontend for libyt"
+readme = "README.md"
+requires-python = ">=3.7"
+license = "BSD"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3"
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "yt_libyt._version.__version__"}
+
+[project.urls]
+"Homepage" = "https://github.com/data-exp-lab/yt_libyt"
+
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
