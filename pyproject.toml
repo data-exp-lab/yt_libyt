@@ -2,14 +2,15 @@
 name = "yt_libyt"
 dynamic = ["version"]
 authors = [
-    "Shin-Rong Tsai <turquoisea.tsai@gmail.com>",
-    "Hsi-Yu Schive",
-    "Matthew Turk <matthewturk@gmail.com>"
+    {name = "Shin-Rong Tsai", email = "turquoisea.tsai@gmail.com"},
+    {name = "Hsi-Yu Schive", email = "hyschive@gmail.com"},
+    {name = "Matthew Turk", email = "matthewturk@gmail.com"}
 ]
 description = "A yt frontend for libyt"
 readme = "README.md"
 requires-python = ">=3.7"
-license = "BSD"
+dependencies = ["yt"]
+keywords = ["yt_libyt"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
