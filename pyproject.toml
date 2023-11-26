@@ -8,6 +8,7 @@ authors = [
 ]
 description = "A yt frontend for libyt"
 readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.7"
 dependencies = ["yt"]
 keywords = ["yt_libyt"]
@@ -19,6 +20,9 @@ classifiers = [
     "Natural Language :: English",
     "Programming Language :: Python :: 3"
 ]
+
+[tool.setuptools]
+license-files = ["LICENSE"]
 
 [tool.setuptools.dynamic]
 version = {attr = "yt_libyt._version.__version__"}
