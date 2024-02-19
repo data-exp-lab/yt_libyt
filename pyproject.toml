@@ -1,8 +1,47 @@
+[project]
+name = "yt_libyt"
+dynamic = ["version"]
+authors = [
+    {name = "Shin-Rong Tsai", email = "turquoisea.tsai@gmail.com"},
+    {name = "Hsi-Yu Schive", email = "hyschive@gmail.com"},
+    {name = "Matthew Turk", email = "matthewturk@gmail.com"}
+]
+description = "A yt frontend for libyt"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.7"
+dependencies = ["yt"]
+keywords = ["yt_libyt"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3"
+]
+
+[tool.setuptools]
+license-files = ["LICENSE"]
+
+[tool.setuptools.dynamic]
+version = {attr = "yt_libyt._version.__version__"}
+
+[project.urls]
+"Homepage" = "https://github.com/data-exp-lab/yt_libyt"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [tool.black]
-line-length = 88
-target-version = ['py37']
+line-length = 100
+target-version = ['py37', 'py38', 'py39', 'py310', 'py311', 'py312']
 
 [tool.isort]
 profile = "black"
+line_length = 100
 combine_as_imports = true
-skip =  ["venv", "benchmarks"]
+skip_gitignore = true
+#skip = [""]  # use default settings for now
+

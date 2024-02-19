@@ -26,7 +26,8 @@ class libytFieldInfo(FieldInfoContainer):
         super(libytFieldInfo, self).__init__(ds, field_list)
 
     def setup_fluid_fields(self):
-        unit_system = self.ds.unit_system
+        # currently, this is not in use.
+        pass
 
     def setup_particle_fields(self, ptype):
         super(libytFieldInfo, self).setup_particle_fields(ptype)
