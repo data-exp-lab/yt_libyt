@@ -182,8 +182,12 @@ class libytDataset(Dataset):
         for name in yt.frontends.api._frontends:
             if self._code_frontend == name.lower():
                 # Import frontend dataset
+                # The naming rule of dataset class is XXXDataset, XXX doesn't necessarily need to be all capital
                 frontend = importlib.import_module(f"yt.frontends.{name.lower()}.api")
-                frontend_dataset = getattr(frontend, f"{name.upper()}Dataset")
+                frontend_dataset = None
+                for _ in dir(frontend):
+                    if _.endswith("Dataset"):
+                        frontend_dataset = getattr(frontend, _)
 
                 # Borrow frontend's field info
                 self._field_info_class = frontend_dataset._field_info_class
