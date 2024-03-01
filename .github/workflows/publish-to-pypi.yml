@@ -32,7 +32,7 @@ jobs:
       - name: Build source tarball
         run: python -m build --sdist --outdir dist
       - name: Upload source tarball
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           path: ./dist/*.tar.gz
 
@@ -51,7 +51,7 @@ jobs:
       - name: Build pure Python wheels
         run: pip wheel . -w wheels/ --no-deps
       - name: Upload builds
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           path: ./wheels/*.whl
 

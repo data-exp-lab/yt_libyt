@@ -37,7 +37,7 @@ jobs:
       - name: Run pytest
         run: tox -e ${{ matrix.python.toxenv }} -- --html=report.html --self-contained-html
       - name: Upload pytest report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: pytest-report-${{ matrix.python.toxenv }}
           path: report.html
