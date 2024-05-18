@@ -275,19 +275,9 @@ class libytDataset(Dataset):
         setdefaultattr(
             self, "magnetic_unit", self.quan(self.libyt.param_yt["magnetic_unit"], "gauss")
         )
-
-        if self.libyt.param_yt["velocity_unit"] > 0:
-            setdefaultattr(
-                self, "velocity_unit", self.quan(self.libyt.param_yt["velocity_unit"], "cm/s")
-            )
-        else:
-            setdefaultattr(
-                self,
-                "velocity_unit",
-                self.quan(
-                    self.libyt.param_yt["length_unit"] / self.libyt.param_yt["time_unit"], "cm/s"
-                ),
-            )
+        setdefaultattr(
+            self, "velocity_unit", self.quan(self.libyt.param_yt["velocity_unit"], "cm/s")
+        )
 
     def _parse_parameter_file(self):
         # dataset identifier
