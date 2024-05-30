@@ -289,12 +289,25 @@ class libytIOHandler(BaseIOHandler):
 
     @staticmethod
     def _get_my_rank():
-        from mpi4py import MPI
+        import libyt
 
-        comm = MPI.COMM_WORLD
-        return comm.Get_rank()
+        if libyt.libyt_info["SERIAL_MODE"] is False:
+            try:
+                from mpi4py import MPI
+
+                comm = MPI.COMM_WORLD
+                return comm.Get_rank()
+            except ImportError:
+                raise ImportError("Need mpi4py in parallel mode (SERIAL_MODE = false)")
+        else:
+            return 0
 
     def _distinguish_nonlocal_grids(self, chunks):
+
+        if self.libyt.libyt_info["SERIAL_MODE"] is True:
+            # we don't need rma
+            return False, [], [], []
+
         # Split local and non-local grids.
         from mpi4py import MPI
 
