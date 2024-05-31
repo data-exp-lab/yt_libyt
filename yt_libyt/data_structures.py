@@ -53,6 +53,7 @@ class libytGrid(AMRGridPatch):
 class libytHierarchy(GridIndex):
     grid = libytGrid
     libyt = None
+
     # _preload_implemented = True # Not sure about this option
 
     def __init__(self, ds, dataset_type="libyt"):
@@ -273,6 +274,9 @@ class libytDataset(Dataset):
         setdefaultattr(self, "time_unit", self.quan(self.libyt.param_yt["time_unit"], "s"))
         setdefaultattr(
             self, "magnetic_unit", self.quan(self.libyt.param_yt["magnetic_unit"], "gauss")
+        )
+        setdefaultattr(
+            self, "velocity_unit", self.quan(self.libyt.param_yt["velocity_unit"], "cm/s")
         )
 
     def _parse_parameter_file(self):
