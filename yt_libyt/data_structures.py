@@ -307,6 +307,12 @@ class libytDataset(Dataset):
             bool(param_yt["periodicity"][2] == 1),
         )
 
+        # particle types
+        if "particle_list" in param_yt:
+            self.particle_types = tuple(param_yt["particle_list"].keys())
+        else:
+            self.particle_types = ()
+
         # Load code specific parameters
         for key in self.libyt.param_user.keys():
             if hasattr(self, key):
