@@ -339,6 +339,16 @@ class libytDataset(Dataset):
         mylog.info(f"libyt    version = {libyt_version}")
         mylog.info(f"yt_libyt version = {__version__}")
 
+        if libyt.libyt_info["version"][0] > 0:
+            mylog.error(
+                "libyt version %s is not compatible with yt_libyt version %s. "
+                "Expecting libyt >=0.1.0,<1.0.0." % (libyt_version, __version__)
+            )
+            raise ValueError(
+                "libyt version %s is not compatible with yt_libyt version %s. "
+                "Expecting libyt >=0.1.0,<1.0.0." % (libyt_version, __version__)
+            )
+
         return libyt
 
     @classmethod

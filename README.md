@@ -1,5 +1,6 @@
 # libyt frontend for yt
 
+[![PyPI version](https://badge.fury.io/py/yt-libyt.svg)](https://badge.fury.io/py/yt-libyt)
 
 This is a [`yt`](https://yt-project.org/) frontend for [`libyt`](https://github.com/yt-project/libyt).
 
