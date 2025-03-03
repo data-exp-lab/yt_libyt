@@ -9,12 +9,14 @@ on:
 jobs:
   test:
     name: Test (pytest)
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
     strategy:
+      fail-fast: false
       matrix:
+        os:
+          - ubuntu-latest
         python:
-          - version: "3.7"
-            toxenv: "py37"
           - version: "3.8"
             toxenv: "py38"
           - version: "3.9"
@@ -25,6 +27,12 @@ jobs:
             toxenv: "py311"
           - version: "3.12"
             toxenv: "py312"
+        include:
+          - os: ubuntu-20.04
+            python:
+              - version: "3.7"
+                toxenv: "py37"
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5.1.1
