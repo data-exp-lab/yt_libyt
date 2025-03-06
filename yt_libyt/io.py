@@ -44,7 +44,7 @@ class libytIOHandler(BaseIOHandler):
             coor_label = self.param_yt["particle_list"][ptype]["particle_coor_label"]
             if None in coor_label:
                 raise ValueError("Particle label representing postion X/Y/Z not set!")
-            ptf_new[ptype] = coor_label
+            ptf_new[ptype] = list(coor_label)
 
         # Get remote data.
         nonlocal_data = self._prepare_remote_particle_from_libyt(chunks, ptf_new)
@@ -108,10 +108,10 @@ class libytIOHandler(BaseIOHandler):
         # Get position (coordinate) label and append particle attribute to get after them.
         ptf_new = {}
         for ptype in ptf.keys():
-            coor_label = self.param_yt["particle_list"][ptype]["particle_coor_label"].copy()
+            coor_label = self.param_yt["particle_list"][ptype]["particle_coor_label"]
             if None in coor_label:
                 raise ValueError("Particle label representing postion X/Y/Z not set!")
-            ptf_new[ptype] = coor_label
+            ptf_new[ptype] = list(coor_label)
             for field in ptf[ptype]:
                 ptf_new[ptype].append(field)
             ptf_new[ptype] = set(ptf_new[ptype])
