@@ -6,12 +6,22 @@ from stubs.libyt_stub import create_libyt_stub
 import yt_libyt
 
 
-def test_enzo():
+def test_enzo_collapse_test_noncosmological():
     # Create libyt stub and make it importable
     simulation = "enzo"
     test_data_path = os.path.join(os.path.dirname(__file__), "data", simulation, "DD0000/DD0000")
-    code_param_list = []
-    field_list = {}
+    code_param_list = {
+        "code_params": ["HydroMethod", "MultiSpecies", "DualEnergyFormalism"],
+        "method": (lambda ds, code_param: ds.parameters[code_param]),
+    }
+    field_list = {
+        "Density": {
+            "attribute": ["", [], None],
+            "field_type": "cell-centered",
+            "contiguous_in_x": True,
+            "ghost_cell": [3, 3, 3, 3, 3, 3],
+        }
+    }
     particle_list = {}
 
     libyt_stub = create_libyt_stub(

@@ -7,13 +7,13 @@ LIBYT_VERSION = (0, 2, 0)
 
 
 def create_libyt_stub(
-    simulation: str, test_data: str, code_param_list: list, field_list: dict, particle_list: dict
+    simulation: str, test_data: str, get_code_params: dict, field_list: dict, particle_list: dict
 ) -> types.ModuleType:
     """
     Returns a stub module that mimics libyt with a specific simulation.
     :param simulation: simulation name, e.g., "gamer", "enzo", etc.
     :param test_data: the absolute path to the test data.
-    :param code_param_list: the code parameters defined in the simulation frontend.
+    :param get_code_params: the code parameters defined in the simulation frontend, and how to get it.
     :param field_list: libyt-v0.2 defined field list
     :param particle_list: libyt-v0.2 defined particle list
     """
@@ -64,11 +64,13 @@ def create_libyt_stub(
     stub.grid_data = {}
     stub.particle_data = {}
 
-    # Fill in param_yt and param_user
     ds = yt.load(test_data)
+    # Fill in param_user
+    for param in get_code_params["code_params"]:
+        stub.param_user[param] = get_code_params["method"](ds, param)
+
+    # Fill in param_yt
     for param in ds.__dict__.keys():
-        if param in code_param_list:
-            stub.param_user[param] = getattr(ds, param)
         if param in stub.param_yt and stub.param_yt[param] is None:
             stub.param_yt[param] = getattr(ds, param)
     if stub.param_yt["velocity_unit"] is None:

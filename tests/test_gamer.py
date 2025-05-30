@@ -6,12 +6,22 @@ from stubs.libyt_stub import create_libyt_stub
 import yt_libyt
 
 
-def test_gamer():
+def test_gamer_plummer():
     # Create libyt stub and make it importable
     simulation = "gamer"
     test_data_path = os.path.join(os.path.dirname(__file__), "data", simulation, "Plummer_000000")
-    code_param_list = ["mhd", "gamma", "mu", "srhd", "opt_unit"]
-    field_list = {}
+    code_param_list = {
+        "code_params": ["mhd", "gamma", "mu", "srhd"],
+        "method": (lambda ds, code_param: getattr(ds, code_param)),
+    }
+    field_list = {
+        "Dens": {
+            "attribute": ["", [], None],
+            "field_type": "cell-centered",
+            "contiguous_in_x": True,
+            "ghost_cell": [0, 0, 0, 0, 0, 0],
+        }
+    }
     particle_list = {}
 
     libyt_stub = create_libyt_stub(
