@@ -7,7 +7,12 @@ LIBYT_VERSION = (0, 2, 0)
 
 
 def create_libyt_stub(
-    simulation: str, test_data: str, get_code_params: dict, field_list: dict, particle_list: dict
+    simulation: str,
+    test_data: str,
+    get_code_params: dict,
+    field_list: dict,
+    particle_list: dict,
+    simulation_field_to_yt_field,
 ) -> types.ModuleType:
     """
     Returns a stub module that mimics libyt with a specific simulation.
@@ -16,6 +21,7 @@ def create_libyt_stub(
     :param get_code_params: the code parameters defined in the simulation frontend, and how to get it.
     :param field_list: libyt-v0.2 defined field list
     :param particle_list: libyt-v0.2 defined particle list
+    :param simulation_field_to_yt_field: mapping field_list and particle_list name to yt field name
     """
     # Mock libyt module based on libyt version 0.x.0
     stub = types.ModuleType("libyt")
@@ -94,5 +100,17 @@ def create_libyt_stub(
     for g in ds.index.grids:
         if g.Parent is not None:
             stub.hierarchy["grid_parent_id"][g.id - stub.param_yt["index_offset"]] = g.Parent.id
+
+    # Fill in grid_data
+    for gid in range(stub.param_yt["num_grids"]):
+        if gid not in stub.grid_data:
+            stub.grid_data[gid] = {}
+        for field in field_list.keys():
+            if field_list[field]["contiguous_in_x"] and stub.param_yt["dimensionality"] == 3:
+                stub.grid_data[gid][field] = (
+                    ds.index.grids[gid][simulation_field_to_yt_field[field]]
+                    .swapaxes(0, 2)
+                    .in_base("code")
+                )
 
     return stub
