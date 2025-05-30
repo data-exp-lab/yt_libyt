@@ -1,16 +1,21 @@
 import types
 
+import numpy as np
 import yt
 
-LIBYT_VERSION = "0.2.0"
+LIBYT_VERSION = (0, 2, 0)
 
 
-def create_libyt_stub(simulation: str, test_data: str, code_param_list: list) -> types.ModuleType:
+def create_libyt_stub(
+    simulation: str, test_data: str, code_param_list: list, field_list: dict, particle_list: dict
+) -> types.ModuleType:
     """
     Returns a stub module that mimics libyt with a specific simulation.
     :param simulation: simulation name, e.g., "gamer", "enzo", etc.
     :param test_data: the absolute path to the test data.
     :param code_param_list: the code parameters defined in the simulation frontend.
+    :param field_list: libyt-v0.2 defined field list
+    :param particle_list: libyt-v0.2 defined particle list
     """
     # Mock libyt module based on libyt version 0.x.0
     stub = types.ModuleType("libyt")
@@ -47,7 +52,7 @@ def create_libyt_stub(simulation: str, test_data: str, code_param_list: list) ->
         "particle_list": None,  # TODO
     }
     stub.param_user = {}
-    stub.param_hierarchy = {
+    stub.hierarchy = {
         "grid_left_edge": None,
         "grid_right_edge": None,
         "grid_dimensions": None,
@@ -59,15 +64,13 @@ def create_libyt_stub(simulation: str, test_data: str, code_param_list: list) ->
     stub.grid_data = {}
     stub.particle_data = {}
 
-    # Fill in the data based on the actual simulation data
+    # Fill in param_yt and param_user
     ds = yt.load(test_data)
     for param in ds.__dict__.keys():
         if param in code_param_list:
             stub.param_user[param] = getattr(ds, param)
         if param in stub.param_yt and stub.param_yt[param] is None:
             stub.param_yt[param] = getattr(ds, param)
-
-    # Dealing with optional and special parameters
     if stub.param_yt["velocity_unit"] is None:
         stub.param_yt["velocity_unit"] = stub.param_yt["length_unit"] / stub.param_yt["time_unit"]
     stub.param_yt["domain_left_edge"] = ds.domain_left_edge
@@ -76,5 +79,18 @@ def create_libyt_stub(simulation: str, test_data: str, code_param_list: list) ->
     stub.param_yt["domain_dimensions"] = ds.domain_dimensions
     stub.param_yt["num_grids"] = ds.index.num_grids
     stub.param_yt["index_offset"] = ds._index_class.grid._id_offset
+    stub.param_yt["field_list"] = field_list
+    stub.param_yt["particle_list"] = particle_list
+
+    # Fill in hierarchy
+    stub.hierarchy["grid_left_edge"] = ds.index.grid_left_edge
+    stub.hierarchy["grid_right_edge"] = ds.index.grid_right_edge
+    stub.hierarchy["grid_dimensions"] = ds.index.grid_dimensions
+    stub.hierarchy["grid_levels"] = ds.index.grid_levels
+    stub.hierarchy["proc_num"] = np.zeros((stub.param_yt["num_grids"], 1), dtype=np.int32)
+    stub.hierarchy["grid_parent_id"] = np.ones((stub.param_yt["num_grids"], 1), dtype=np.int32) * -1
+    for g in ds.index.grids:
+        if g.Parent is not None:
+            stub.hierarchy["grid_parent_id"][g.id - stub.param_yt["index_offset"]] = g.Parent.id
 
     return stub

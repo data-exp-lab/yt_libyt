@@ -3,20 +3,22 @@ import sys
 
 from stubs.libyt_stub import create_libyt_stub
 
+import yt_libyt
+
 
 def test_gamer():
-    # Create libyt stub
+    # Create libyt stub and make it importable
     simulation = "gamer"
     test_data_path = os.path.join(os.path.dirname(__file__), "data", simulation, "Plummer_000000")
     code_param_list = ["mhd", "gamma", "mu", "srhd", "opt_unit"]
+    field_list = {}
+    particle_list = {}
 
-    libyt_stub = create_libyt_stub(simulation, test_data_path, code_param_list)
+    libyt_stub = create_libyt_stub(
+        simulation, test_data_path, code_param_list, field_list, particle_list
+    )
     sys.modules["libyt"] = libyt_stub
 
-    import libyt
-
-    assert libyt.libyt_info["version"] == "0.2.0"
-    assert "mhd" in libyt.param_user
-    assert "mu" in libyt.param_user
-    for key in libyt.param_yt:
-        assert libyt.param_yt[key] is not None, f"Parameter {key} should not be None"
+    # Run yt_libyt code
+    ds = yt_libyt.libytDataset()
+    ds.print_stats()
