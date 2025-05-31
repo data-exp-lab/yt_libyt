@@ -103,14 +103,32 @@ def create_libyt_stub(
 
     # Fill in grid_data
     for gid in range(stub.param_yt["num_grids"]):
-        if gid not in stub.grid_data:
-            stub.grid_data[gid] = {}
+        if gid + stub.param_yt["index_offset"] not in stub.grid_data:
+            stub.grid_data[gid + stub.param_yt["index_offset"]] = {}
         for field in field_list.keys():
-            if field_list[field]["contiguous_in_x"] and stub.param_yt["dimensionality"] == 3:
-                stub.grid_data[gid][field] = (
-                    ds.index.grids[gid][simulation_field_to_yt_field[field]]
-                    .swapaxes(0, 2)
-                    .in_base("code")
-                )
+            # TODO: assume cell-centered fields
+            ghost_cells = field_list[field]["ghost_cell"]
+            allocate_dim = stub.hierarchy["grid_dimensions"][gid]
+            if field_list[field]["contiguous_in_x"]:
+                allocate_dim = np.flip(allocate_dim)
+            for d in range(6):
+                allocate_dim[int(d / 2)] += ghost_cells[d]
+            stub.grid_data[gid + stub.param_yt["index_offset"]][field] = (
+                np.ones(allocate_dim, dtype=np.float64) * np.nan
+            )
+
+            if field_list[field]["contiguous_in_x"]:
+                if stub.param_yt["dimensionality"] == 3:
+                    stub.grid_data[gid + stub.param_yt["index_offset"]][field] = (
+                        ds.index.grids[gid][simulation_field_to_yt_field[field]]
+                        .swapaxes(0, 2)
+                        .in_base("code")
+                    )
+                elif stub.param_yt["dimensionality"] == 2:
+                    stub.grid_data[gid + stub.param_yt["index_offset"]][field] = (
+                        ds.index.grids[gid][simulation_field_to_yt_field[field]]
+                        .swapaxes(0, 1)
+                        .in_base("code")
+                    )
 
     return stub
