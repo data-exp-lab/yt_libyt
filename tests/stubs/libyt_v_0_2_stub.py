@@ -17,11 +17,21 @@ def create_libyt_stub(
 ) -> types.ModuleType:
     """
     Returns a stub module that mimics libyt with a specific simulation.
+
+    :note: yt store the data structure in 3d, which is if the simulation is 2d, an additional dimension is added.
+
+          hierarchy is stored in 3d as well in a continuous array with 0 as the first grid, if dimensionality is 2,
+          the third dimension is set to 1.
+          grid_data stores the grid id starting from the index offset.
+
+          When extracting the data using yt, the data is always in 3d, so if the simulation is 2d, we need to extract it.
+
     :param simulation: simulation name, e.g., "gamer", "enzo", etc.
     :param fig_base_name: figure base name
     :param test_data: the absolute path to the test data.
     :param get_code_params: the code parameters defined in the simulation frontend, and how to get it.
-                            {"code_params": [(param_name, default_value), ...],
+                            {
+                             "code_params": [(param_name, default_value), ...],
                              "method": (function to get the parameter)
                              "expected_error": Exception type that is expected to be raised if the parameter is not found
                             }
@@ -117,10 +127,12 @@ def create_libyt_stub(
         for field in field_list.keys():
             # TODO: assume cell-centered fields
             ghost_cells = field_list[field]["ghost_cell"]
-            allocate_dim = stub.hierarchy["grid_dimensions"][gid].copy()
+            allocate_dim = stub.hierarchy["grid_dimensions"][gid][
+                : stub.param_yt["dimensionality"]
+            ].copy()
             if field_list[field]["contiguous_in_x"]:
                 allocate_dim = np.flip(allocate_dim)
-            for d in range(6):
+            for d in range(2 * stub.param_yt["dimensionality"]):
                 allocate_dim[int(d / 2)] += ghost_cells[d]
             stub.grid_data[gid + stub.param_yt["index_offset"]][field] = (
                 np.ones(allocate_dim, dtype=np.float64) * np.nan
@@ -141,16 +153,14 @@ def create_libyt_stub(
                     stub.grid_data[gid + stub.param_yt["index_offset"]][field][
                         ghost_cells[0] : allocate_dim[0] - ghost_cells[1],
                         ghost_cells[2] : allocate_dim[1] - ghost_cells[3],
-                    ] = (
-                        ds.index.grids[gid][simulation_field_to_yt_field[field]]
-                        .swapaxes(0, 1)
-                        .in_base("code")
+                    ] = np.squeeze(
+                        ds.index.grids[gid][simulation_field_to_yt_field[field]].in_base("code")
+                    ).swapaxes(
+                        0, 1
                     )
                 else:
                     stub.grid_data[gid + stub.param_yt["index_offset"]][field][
                         ghost_cells[0] : allocate_dim[0] - ghost_cells[1]
                     ] = ds.index.grids[gid][simulation_field_to_yt_field[field]].in_base("code")
-
-    print(stub.param_user)
 
     return stub

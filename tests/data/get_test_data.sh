@@ -11,3 +11,5 @@ tar -xvzf "gamer/Plummer.tar.gz" -C gamer
 mkdir -p enzo
 curl -o "enzo/IsolatedGalaxy.tar.gz" "https://yt-project.org/data/IsolatedGalaxy.tar.gz"
 tar -xvzf "enzo/IsolatedGalaxy.tar.gz" -C enzo
+curl -o "enzo/EnzoKelvinHelmholtz.tar.gz" "https://yt-project.org/data/EnzoKelvinHelmholtz.tar.gz"
+tar -xvzf "enzo/EnzoKelvinHelmholtz.tar.gz" -C enzo
