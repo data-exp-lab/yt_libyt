@@ -40,3 +40,10 @@ def test_enzo_collapse_test_noncosmological():
     ds = yt_libyt.libytDataset()
     slc = yt.SlicePlot(ds, "z", ("enzo", "Density"))
     slc.save()
+
+    # Compare to post-processing results
+    ds_post = yt.load(test_data_path)
+    slc_post = yt.SlicePlot(ds_post, "z", ("enzo", "Density"))
+    slc_post.save()
+
+    assert sum(slc.data_source["enzo", "Density"] - slc_post.data_source["enzo", "Density"]) == 0.0

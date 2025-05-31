@@ -40,3 +40,10 @@ def test_gamer_plummer():
     ds = yt_libyt.libytDataset()
     slc = yt.SlicePlot(ds, "z", ("gamer", "Dens"))
     slc.save()
+
+    # Compare to post-processing results
+    ds_post = yt.load(test_data_path)
+    slc_post = yt.SlicePlot(ds_post, "z", ("gamer", "Dens"))
+    slc_post.save()
+
+    assert sum(slc.data_source["gamer", "Dens"] - slc_post.data_source["gamer", "Dens"]) == 0.0

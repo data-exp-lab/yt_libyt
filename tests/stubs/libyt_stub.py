@@ -54,8 +54,8 @@ def create_libyt_stub(
         "domain_dimensions": None,
         "num_grids": None,
         "index_offset": None,
-        "field_list": None,  # TODO
-        "particle_list": None,  # TODO
+        "field_list": None,
+        "particle_list": None,
     }
     stub.param_user = {}
     stub.hierarchy = {
@@ -137,5 +137,9 @@ def create_libyt_stub(
                         .swapaxes(0, 1)
                         .in_base("code")
                     )
+                else:
+                    stub.grid_data[gid + stub.param_yt["index_offset"]][field][
+                        ghost_cells[0] : allocate_dim[0] - ghost_cells[1]
+                    ] = ds.index.grids[gid][simulation_field_to_yt_field[field]].in_base("code")
 
     return stub
