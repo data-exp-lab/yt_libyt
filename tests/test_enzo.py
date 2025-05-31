@@ -16,8 +16,13 @@ def test_enzo_isolated_galaxy():
         os.path.dirname(__file__), "data", simulation, f"{problem}/galaxy0030/galaxy0030"
     )
     code_param_list = {
-        "code_params": ["HydroMethod", "MultiSpecies", "DualEnergyFormalism"],
+        "code_params": [
+            ("HydroMethod", None),
+            ("MultiSpecies", None),
+            ("DualEnergyFormalism", None),
+        ],
         "method": (lambda ds, code_param: ds.parameters[code_param]),
+        "expected_error": KeyError,
     }
     field_list = {
         "Density": {

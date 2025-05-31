@@ -16,8 +16,15 @@ def test_gamer_plummer():
         os.path.dirname(__file__), "data", simulation, f"{problem}/plummer_000000"
     )
     code_param_list = {
-        "code_params": ["mhd", "gamma", "mu", "srhd"],
+        "code_params": [
+            ("mhd", None),
+            ("gamma", None),
+            ("mu", None),
+            ("srhd", None),
+            ("opt_unit", 0),
+        ],
         "method": (lambda ds, code_param: getattr(ds, code_param)),
+        "expected_error": AttributeError,
     }
     field_list = {
         "Dens": {

@@ -17,10 +17,14 @@ def create_libyt_stub(
 ) -> types.ModuleType:
     """
     Returns a stub module that mimics libyt with a specific simulation.
-    :param fig_base_name:
     :param simulation: simulation name, e.g., "gamer", "enzo", etc.
+    :param fig_base_name: figure base name
     :param test_data: the absolute path to the test data.
     :param get_code_params: the code parameters defined in the simulation frontend, and how to get it.
+                            {"code_params": [(param_name, default_value), ...],
+                             "method": (function to get the parameter)
+                             "expected_error": Exception type that is expected to be raised if the parameter is not found
+                            }
     :param field_list: libyt-v0.2 defined field list
     :param particle_list: libyt-v0.2 defined particle list
     :param simulation_field_to_yt_field: mapping field_list and particle_list name to yt field name
@@ -75,7 +79,10 @@ def create_libyt_stub(
     ds = yt.load(test_data)
     # Fill in param_user
     for param in get_code_params["code_params"]:
-        stub.param_user[param] = get_code_params["method"](ds, param)
+        try:
+            stub.param_user[param[0]] = get_code_params["method"](ds, param[0])
+        except get_code_params["expected_error"]:
+            stub.param_user[param[0]] = param[1]
 
     # Fill in param_yt
     for param in ds.__dict__.keys():
@@ -143,5 +150,7 @@ def create_libyt_stub(
                     stub.grid_data[gid + stub.param_yt["index_offset"]][field][
                         ghost_cells[0] : allocate_dim[0] - ghost_cells[1]
                     ] = ds.index.grids[gid][simulation_field_to_yt_field[field]].in_base("code")
+
+    print(stub.param_user)
 
     return stub
