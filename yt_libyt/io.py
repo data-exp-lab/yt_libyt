@@ -453,6 +453,41 @@ class libytIOHandler(BaseIOHandler):
             )
             raise ValueError("libyt does not support removing ghost cells for this data.")
 
+    def _convert_face_centered_to_cell_centered(self, fname, contiguous_in_x, grid_id, data):
+        grid_dim = self.hierarchy["grid_dimensions"][grid_id - self.param_yt["index_offset"]][
+            : self.param_yt["dimensionality"]
+        ].copy()
+        if contiguous_in_x is True:
+            grid_dim = np.flip(grid_dim)
+        axis = np.argwhere(grid_dim != data.shape).flatten()
+        if len(axis) != 1 or data.shape[axis[0]] - 1 != grid_dim[axis[0]]:
+            mylog.error(
+                "Field [%s] in grid [%d] is not a face-centered data. "
+                "Data grid has dim %s, but it cannot be converted to dim = %s"
+                % (fname, grid_id, (data.shape,), grid_dim)
+            )
+            raise ValueError("Face-centered data dimension not match.")
+
+        if self.param_yt["dimensionality"] == 3:
+            if axis == 0:
+                return 0.5 * (data[:-1, :, :] + data[1:, :, :])
+            elif axis == 1:
+                return 0.5 * (data[:, :-1, :] + data[:, 1:, :])
+            else:
+                return 0.5 * (data[:, :, :-1] + data[:, :, 1:])
+        elif self.param_yt["dimensionality"] == 2:
+            if axis == 0:
+                return 0.5 * (data[:-1, :] + data[1:, :])
+            else:
+                return 0.5 * (data[:, :-1] + data[:, 1:])
+        elif self.param_yt["dimensionality"] == 1:
+            return 0.5 * (data[:-1] + data[1:])
+        else:
+            raise ValueError(
+                "Unable to convert face-centered data to cell-centered data for dimensionality %d."
+                % self.param_yt["dimensionality"]
+            )
+
     def _get_field_from_libyt(self, grid, fname, nonlocal_data=None):
         # This method is to get the grid data.
         # If nonlocal_data is none, which means to get a local grid.
@@ -477,10 +512,11 @@ class libytIOHandler(BaseIOHandler):
 
             # Remove ghost cell, and get my slice
             data_convert = self._remove_ghost_cells(ghost_cell, data_convert)
-            print("data_covert.base = ", data_convert.base)
-            print("self.grid_data[grid.id][fname].base", self.grid_data[grid.id][fname].base)
-            print("is view?", data_convert.base is self.grid_data[grid.id][fname])
-            print("is view?", data_convert.base is self.grid_data[grid.id][fname].base)
+            print("data_covert.base = ", data_convert.base)  # view of array without ghost cells
+            print(
+                "self.grid_data[grid.id][fname].base", self.grid_data[grid.id][fname].base
+            )  # None
+            print("is view?", data_convert.base is self.grid_data[grid.id][fname])  # True
 
         elif field_list[fname]["field_type"] == "face-centered":
             # Read data from grid_data, or nonlocal_data.
@@ -502,25 +538,9 @@ class libytIOHandler(BaseIOHandler):
             data_temp = self._remove_ghost_cells(ghost_cell, data_temp)
 
             # Convert to cell-centered
-            # TODO: single this to a single function and consider 2d and 1d cases, don't mess up view of array
-            grid_dim = self.hierarchy["grid_dimensions"][grid.id]
-            if field_list[fname]["contiguous_in_x"] is True:
-                grid_dim = np.flip(grid_dim)
-            axis = np.argwhere(grid_dim != data_temp.shape).flatten()
-            if len(axis) != 1 or data_temp.shape[axis[0]] - 1 != grid_dim[axis[0]]:
-                mylog.error(
-                    "Field [%s] in grid [%d] is not a face-centered data. "
-                    "It has dim = %s, but it should be dim = %s"
-                    % (fname, grid.id, (data_temp.shape,), grid_dim)
-                )
-                raise ValueError("Face-centered data dimension not match.")
-
-            if axis == 0:
-                data_convert = 0.5 * (data_temp[:-1, :, :] + data_temp[1:, :, :])
-            elif axis == 1:
-                data_convert = 0.5 * (data_temp[:, :-1, :] + data_temp[:, 1:, :])
-            elif axis == 2:
-                data_convert = 0.5 * (data_temp[:, :, :-1] + data_temp[:, :, 1:])
+            data_convert = self._convert_face_centered_to_cell_centered(
+                fname, field_list[fname]["contiguous_in_x"], grid.id, data_temp
+            )
 
         elif field_list[fname]["field_type"] == "derived_func":
             # Read data
