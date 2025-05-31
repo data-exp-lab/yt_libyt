@@ -104,4 +104,16 @@ def test_enzo_kelvin_helmholtz():
 
     # Run yt_libyt code
     ds = yt_libyt.libytDataset()
-    ds.print_stats()
+    slc = yt.SlicePlot(ds, "z", ("enzo", "Density"))
+    slc.save(f"{fig_base_name}-libyt.png")
+
+    # Compare to post-processing results
+    ds_post = yt.load(test_data_path)
+    slc_post = yt.SlicePlot(ds_post, "z", ("enzo", "Density"))
+    slc_post.save(f"{fig_base_name}-post.png")
+    fig_size = slc_post.data_source["enzo", "Density"].size
+
+    assert (
+        sum(slc.data_source["enzo", "Density"] - slc_post.data_source["enzo", "Density"]) / fig_size
+        < 1e-2
+    )
