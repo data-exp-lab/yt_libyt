@@ -431,6 +431,28 @@ class libytIOHandler(BaseIOHandler):
 
         return nonlocal_data
 
+    def _remove_ghost_cells(self, ghost_cell, data):
+        dim = data.ndim
+        shape = data.shape
+        if dim == 3:
+            return data[
+                ghost_cell[0] : (shape[0] - ghost_cell[1]),
+                ghost_cell[2] : (shape[1] - ghost_cell[3]),
+                ghost_cell[4] : (shape[2] - ghost_cell[5]),
+            ]
+        elif dim == 2:
+            return data[
+                ghost_cell[0] : (shape[0] - ghost_cell[1]),
+                ghost_cell[2] : (shape[1] - ghost_cell[3]),
+            ]
+        elif dim == 1:
+            return data[ghost_cell[0] : (shape[0] - ghost_cell[1])]
+        else:
+            mylog.error(
+                "libyt does not support removing ghost cells for data with dimension %d." % dim
+            )
+            raise ValueError("libyt does not support removing ghost cells for this data.")
+
     def _get_field_from_libyt(self, grid, fname, nonlocal_data=None):
         # This method is to get the grid data.
         # If nonlocal_data is none, which means to get a local grid.
@@ -454,12 +476,11 @@ class libytIOHandler(BaseIOHandler):
                 raise RuntimeError("libyt didn't get the data successfully.")
 
             # Remove ghost cell, and get my slice
-            data_shape = data_convert.shape
-            data_convert = data_convert[
-                ghost_cell[0] : (data_shape[0] - ghost_cell[1]),
-                ghost_cell[2] : (data_shape[1] - ghost_cell[3]),
-                ghost_cell[4] : (data_shape[2] - ghost_cell[5]),
-            ]
+            data_convert = self._remove_ghost_cells(ghost_cell, data_convert)
+            print("data_covert.base = ", data_convert.base)
+            print("self.grid_data[grid.id][fname].base", self.grid_data[grid.id][fname].base)
+            print("is view?", data_convert.base is self.grid_data[grid.id][fname])
+            print("is view?", data_convert.base is self.grid_data[grid.id][fname].base)
 
         elif field_list[fname]["field_type"] == "face-centered":
             # Read data from grid_data, or nonlocal_data.
@@ -478,14 +499,10 @@ class libytIOHandler(BaseIOHandler):
                 raise RuntimeError("libyt didn't get the data successfully.")
 
             # Remove ghost cell, and get my slice
-            data_shape = data_temp.shape
-            data_temp = data_temp[
-                ghost_cell[0] : (data_shape[0] - ghost_cell[1]),
-                ghost_cell[2] : (data_shape[1] - ghost_cell[3]),
-                ghost_cell[4] : (data_shape[2] - ghost_cell[5]),
-            ]
+            data_temp = self._remove_ghost_cells(ghost_cell, data_temp)
 
             # Convert to cell-centered
+            # TODO: single this to a single function and consider 2d and 1d cases, don't mess up view of array
             grid_dim = self.hierarchy["grid_dimensions"][grid.id]
             if field_list[fname]["contiguous_in_x"] is True:
                 grid_dim = np.flip(grid_dim)
@@ -528,6 +545,11 @@ class libytIOHandler(BaseIOHandler):
 
         # Swap axes or not, then return
         if field_list[fname]["contiguous_in_x"] is True:
-            return data_convert.swapaxes(0, 2)
+            if data_convert.ndim == 3:
+                return data_convert.swapaxes(0, 2)
+            elif data_convert.ndim == 2:
+                return np.expand_dims(data_convert.swapaxes(0, 1), axis=2)
+            else:
+                return np.expand_dims(data_convert, axis=(1, 2))
         else:
             return data_convert
