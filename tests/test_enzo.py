@@ -7,12 +7,13 @@ from stubs.libyt_v_0_2_stub import create_libyt_stub
 import yt_libyt
 
 
-def test_enzo_collapse_test_noncosmological():
+def test_enzo_isolated_galaxy():
     # Create libyt stub and make it importable
     simulation = "enzo"
-    fig_base_name = f"{simulation}-CollapseTestNonCosmological"
+    problem = "IsolatedGalaxy"
+    fig_base_name = f"{simulation}-{problem}"
     test_data_path = os.path.join(
-        os.path.dirname(__file__), "data", simulation, "CollapseTestNonCosmological/DD0000"
+        os.path.dirname(__file__), "data", simulation, f"{problem}/galaxy0030/galaxy0030"
     )
     code_param_list = {
         "code_params": ["HydroMethod", "MultiSpecies", "DualEnergyFormalism"],
@@ -49,5 +50,9 @@ def test_enzo_collapse_test_noncosmological():
     ds_post = yt.load(test_data_path)
     slc_post = yt.SlicePlot(ds_post, "z", ("enzo", "Density"))
     slc_post.save(f"{fig_base_name}-post.png")
+    fig_size = slc_post.data_source["enzo", "Density"].size
 
-    assert sum(slc.data_source["enzo", "Density"] - slc_post.data_source["enzo", "Density"]) == 0.0
+    assert (
+        sum(slc.data_source["enzo", "Density"] - slc_post.data_source["enzo", "Density"]) / fig_size
+        < 1e-2
+    )

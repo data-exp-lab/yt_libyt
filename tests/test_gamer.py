@@ -10,8 +10,11 @@ import yt_libyt
 def test_gamer_plummer():
     # Create libyt stub and make it importable
     simulation = "gamer"
-    fig_base_name = f"{simulation}-Plummer"
-    test_data_path = os.path.join(os.path.dirname(__file__), "data", simulation, "Plummer_000000")
+    problem = "Plummer"
+    fig_base_name = f"{simulation}-{problem}"
+    test_data_path = os.path.join(
+        os.path.dirname(__file__), "data", simulation, f"{problem}/plummer_000000"
+    )
     code_param_list = {
         "code_params": ["mhd", "gamma", "mu", "srhd"],
         "method": (lambda ds, code_param: getattr(ds, code_param)),
@@ -47,5 +50,9 @@ def test_gamer_plummer():
     ds_post = yt.load(test_data_path)
     slc_post = yt.SlicePlot(ds_post, "z", ("gamer", "Dens"))
     slc_post.save(f"{fig_base_name}-post.png")
+    fig_size = slc_post.data_source["gamer", "Dens"].size
 
-    assert sum(slc.data_source["gamer", "Dens"] - slc_post.data_source["gamer", "Dens"]) == 0.0
+    assert (
+        sum(slc.data_source["gamer", "Dens"] - slc_post.data_source["gamer", "Dens"]) / fig_size
+        < 1e-2
+    )

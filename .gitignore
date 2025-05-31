@@ -107,4 +107,5 @@ ENV/
 
 report.html
 
-tests/data/
+tests/data/gamer/*
+tests/data/enzo/*
