@@ -2,7 +2,7 @@ import os
 import sys
 
 import yt
-from stubs.libyt_stub import create_libyt_stub
+from stubs.libyt_v_0_2_stub import create_libyt_stub
 
 import yt_libyt
 
@@ -10,6 +10,7 @@ import yt_libyt
 def test_gamer_plummer():
     # Create libyt stub and make it importable
     simulation = "gamer"
+    fig_base_name = f"{simulation}-Plummer"
     test_data_path = os.path.join(os.path.dirname(__file__), "data", simulation, "Plummer_000000")
     code_param_list = {
         "code_params": ["mhd", "gamma", "mu", "srhd"],
@@ -28,6 +29,7 @@ def test_gamer_plummer():
 
     libyt_stub = create_libyt_stub(
         simulation,
+        fig_base_name,
         test_data_path,
         code_param_list,
         field_list,
@@ -39,11 +41,11 @@ def test_gamer_plummer():
     # Run yt_libyt code
     ds = yt_libyt.libytDataset()
     slc = yt.SlicePlot(ds, "z", ("gamer", "Dens"))
-    slc.save()
+    slc.save(f"{fig_base_name}-libyt.png")
 
     # Compare to post-processing results
     ds_post = yt.load(test_data_path)
     slc_post = yt.SlicePlot(ds_post, "z", ("gamer", "Dens"))
-    slc_post.save()
+    slc_post.save(f"{fig_base_name}-post.png")
 
     assert sum(slc.data_source["gamer", "Dens"] - slc_post.data_source["gamer", "Dens"]) == 0.0

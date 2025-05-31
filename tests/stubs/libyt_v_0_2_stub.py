@@ -8,6 +8,7 @@ LIBYT_VERSION = (0, 2, 0)
 
 def create_libyt_stub(
     simulation: str,
+    fig_base_name: str,
     test_data: str,
     get_code_params: dict,
     field_list: dict,
@@ -16,6 +17,7 @@ def create_libyt_stub(
 ) -> types.ModuleType:
     """
     Returns a stub module that mimics libyt with a specific simulation.
+    :param fig_base_name:
     :param simulation: simulation name, e.g., "gamer", "enzo", etc.
     :param test_data: the absolute path to the test data.
     :param get_code_params: the code parameters defined in the simulation frontend, and how to get it.
@@ -34,7 +36,7 @@ def create_libyt_stub(
     }
     stub.param_yt = {
         "frontend": simulation,
-        "fig_basename": f"{simulation}0000",
+        "fig_basename": fig_base_name,
         "current_time": None,
         "current_redshift": None,
         "omega_lambda": None,

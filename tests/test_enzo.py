@@ -2,7 +2,7 @@ import os
 import sys
 
 import yt
-from stubs.libyt_stub import create_libyt_stub
+from stubs.libyt_v_0_2_stub import create_libyt_stub
 
 import yt_libyt
 
@@ -10,7 +10,10 @@ import yt_libyt
 def test_enzo_collapse_test_noncosmological():
     # Create libyt stub and make it importable
     simulation = "enzo"
-    test_data_path = os.path.join(os.path.dirname(__file__), "data", simulation, "DD0000/DD0000")
+    fig_base_name = f"{simulation}-CollapseTestNonCosmological"
+    test_data_path = os.path.join(
+        os.path.dirname(__file__), "data", simulation, "CollapseTestNonCosmological/DD0000"
+    )
     code_param_list = {
         "code_params": ["HydroMethod", "MultiSpecies", "DualEnergyFormalism"],
         "method": (lambda ds, code_param: ds.parameters[code_param]),
@@ -28,6 +31,7 @@ def test_enzo_collapse_test_noncosmological():
 
     libyt_stub = create_libyt_stub(
         simulation,
+        fig_base_name,
         test_data_path,
         code_param_list,
         field_list,
@@ -39,11 +43,11 @@ def test_enzo_collapse_test_noncosmological():
     # Run yt_libyt code
     ds = yt_libyt.libytDataset()
     slc = yt.SlicePlot(ds, "z", ("enzo", "Density"))
-    slc.save()
+    slc.save(f"{fig_base_name}-libyt.png")
 
     # Compare to post-processing results
     ds_post = yt.load(test_data_path)
     slc_post = yt.SlicePlot(ds_post, "z", ("enzo", "Density"))
-    slc_post.save()
+    slc_post.save(f"{fig_base_name}-post.png")
 
     assert sum(slc.data_source["enzo", "Density"] - slc_post.data_source["enzo", "Density"]) == 0.0
