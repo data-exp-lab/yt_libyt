@@ -512,11 +512,6 @@ class libytIOHandler(BaseIOHandler):
 
             # Remove ghost cell, and get my slice
             data_convert = self._remove_ghost_cells(ghost_cell, data_convert)
-            print("data_covert.base = ", data_convert.base)  # view of array without ghost cells
-            print(
-                "self.grid_data[grid.id][fname].base", self.grid_data[grid.id][fname].base
-            )  # None
-            print("is view?", data_convert.base is self.grid_data[grid.id][fname])  # True
 
         elif field_list[fname]["field_type"] == "face-centered":
             # Read data from grid_data, or nonlocal_data.
