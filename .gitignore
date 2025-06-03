@@ -106,3 +106,6 @@ ENV/
 .idea/
 
 report.html
+
+tests/data/gamer/*
+tests/data/enzo/*
