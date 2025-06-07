@@ -28,7 +28,7 @@ jobs:
           - version: "3.12"
             toxenv: "py312"
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             python: { version: "3.7", toxenv: "py37" }
 
     steps:
